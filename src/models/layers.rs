@@ -1,11 +1,17 @@
-use crate::graph::{Context, NodeIdentifier, Result, Shape};
+use crate::graph::{constant, dtypes, Context, Node, NodeIdentifier, Operation, Result, Shape};
 
-use super::initializers::Initializer;
+use super::initializers::{ConstInit, Initializer};
 
-#[repr(C)]
 pub struct ConvParams<T> {
     kernel: T,
     bias: T,
+}
+
+pub struct BatchNormParams<T> {
+    mu: T,
+    sigma: T,
+    alpha: T,
+    beta: T,
 }
 
 impl Context {
@@ -57,5 +63,59 @@ impl Context {
                 bias: bias_val,
             },
         ))
+    }
+
+    pub fn batchnorm(
+        &mut self,
+        input_node: NodeIdentifier,
+        eps: f32,
+        name: &str,
+    ) -> Result<(
+        NodeIdentifier,
+        BatchNormParams<NodeIdentifier>,
+        BatchNormParams<xla::Literal>,
+    )> {
+        let shape = self.nodes[input_node].shape.clone();
+        let last_dim = shape.sizes[shape.ndims() - 1];
+        let dtype = self.nodes[input_node].dtype;
+
+        check_fp_type(dtype)?;
+
+        let mut param_shapes = shape.clone();
+        for i in 0..param_shapes.ndims() - 1 {
+            param_shapes.sizes[i] = 1;
+        }
+
+        let mut mu_name = name;
+        mu_name.push_str("_mu");
+        let mu = self.parameter(mu_name, param_shapes, dtype)?;
+
+        let mut sigma_name = name;
+        sigma_name.push_str("_sigma");
+        let sigma = self.parameter(sigma_name, param_shapes, dtype)?;
+
+        let mut alpha_name = name;
+        alpha_name.push_str("_alpha");
+        let alpha = self.parameter(alpha_name, param_shapes, dtype)?;
+
+        let mut beta_name = name;
+        beta_name.push_str("_beta");
+        let beta = self.parameter(beta_name, param_shapes, dtype)?;
+
+        let epsilon = self.scalar(epsilon, dtype)?;
+
+        let mu_literal = ConstInit(0.0).initialize(0, param_shapes, dtype)?;
+        let beta_literal = ConstInit(0.0).initialize(0, param_shapes, dtype)?;
+        let alpha_literal = ConstInit(1.0).initialize(0, param_shapes, dtype)?;
+        let sigma_literal = ConstInit(1.0).initialize(0, param_shapes, dtype)?;
+
+        let batchnorm_node = self.nodes.insert(Operation::BatchNorm {
+            mu,
+            sigma,
+            epsilon,
+            alpha,
+            beta,
+            x: input_node,
+        });
     }
 }

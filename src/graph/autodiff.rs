@@ -64,9 +64,11 @@ impl Context {
                     //Again again, clone() here is not wonderful, there's gotta be a better way to
                     //store the i64 vec for Transpose
                     match self.nodes[dependent_node].operation.clone() {
-                        Operation::Constant(_) 
-                            | Operation::RngUniform(_, _, _) 
-                            | Operation::RngNormal(_, _, _) => panic!("Constant found as dependent node!"),
+                        Operation::Constant(_)
+                        | Operation::RngUniform(_, _, _)
+                        | Operation::RngNormal(_, _, _) => {
+                            panic!("Constant found as dependent node!")
+                        }
                         Operation::Parameter(_) => panic!("Parameter found as dependent node!"),
                         Operation::StopGradient(_) => continue,
 
@@ -273,6 +275,38 @@ impl Context {
                             );
                             } else {
                                 continue;
+                            }
+                        }
+
+                        Operation::BatchNorm {
+                            mu,
+                            sigma,
+                            epsilon,
+                            alpha,
+                            beta,
+                            x,
+                        } => {
+                            let next_pullback = self.diff(output, dependent_node)?;
+
+                            if mu == with_respect_to {
+                                return Ok(x);
+                            } else if sigma == with_respect_to {
+                                return Ok(x);
+                            } else if epsilon == with_respect_to {
+                                panic!("You shouldn't differentiate the epsilon parameter of batch normalization.")
+                            } else if alpha == with_respect_to {
+                                let sqrt_sig = self.sqrt(sigma);
+                                let sig_eps = self.add(sqrt_sig, epsilon)?;
+                                let x_mu = self.sub(x, mu)?;
+                                let x_div = self.div(x_mu, sig_eps)?;
+                                dependent_pullbacks.push(self.mul(next_pullback, x_div)?);
+                            } else if beta == with_respect_to {
+                                dependent_pullbacks.push(next_pullback);
+                            } else {
+                                let sqrt_sig = self.sqrt(sigma);
+                                let sig_eps = self.add(sqrt_sig, epsilon)?;
+                                let alpha_div = self.div(alpha, sig_eps)?;
+                                dependent_pullbacks.push(self.mul(next_pullback, alpha_div));
                             }
                         }
 

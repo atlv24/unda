@@ -9,11 +9,11 @@ pub trait Initializer {
     ) -> xla::Result<xla::Literal>;
 }
 
-struct Constant {
+struct ConstInit {
     constant: f32
 }
 
-impl Initializer for Constant {
+impl Initializer for ConstInit {
     fn initialize(
         &self,
         _: i64,

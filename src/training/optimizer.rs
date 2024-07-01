@@ -25,6 +25,7 @@ pub struct ChainedOptimizer<const P: usize, const S: usize, U> {
 
 // WILL FAIL!
 // TODO: Need to get node identifiers into the merged context!
+/*
 pub fn chain<
     const P1: usize,
     const P2: usize,
@@ -47,6 +48,7 @@ pub fn chain<
         user_params: (opt1.get_user_params(), opt2.get_user_params())
     })
 }
+*/
 
 pub struct SGD<const P: usize> {
     step: Context,
@@ -181,7 +183,9 @@ impl Optimizer<2, 0, f32> for BatchNormOptimizer {
             for i in 1..model.nodes[mu].shape.ndims() - 1 {
                 mean = step.reduce_mean(mean, i as i64, true)?;
             }
-            let new_mu = step.add(step.mul(mom, old_mu)?, step.mul(mom1, mean)?)?;
+            let mul = step.mul(mom, old_mu)?;
+            let mul1 = step.mul(mom1, mean)?;
+            let new_mu = step.add(mul, mul1)?;
 
             let zero_centered = step.sub(grad_mu, mean)?;
             let squared = step.mul(zero_centered, zero_centered)?;
@@ -189,7 +193,9 @@ impl Optimizer<2, 0, f32> for BatchNormOptimizer {
             for i in 1..model.nodes[mu].shape.ndims() - 1 {
                 std = step.reduce_mean(mean, i as i64, true)?;
             }
-            let new_sigma = step.add(step.mul(mom, old_sigma)?, step.mul(mom1, std)?)?;
+            let mul = step.mul(mom, old_sigma)?;
+            let mul1 = step.mul(mom1, std)?;
+            let new_sigma = step.add(mul, mul1)?;
 
             let new_params = [new_mu, new_sigma];
 

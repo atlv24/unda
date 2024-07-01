@@ -247,7 +247,8 @@ impl Context {
                         Operation::InvSqrt(a) => {
                             let next_pullback = self.diff(output, dependent_node)?;
                             let neg_half = self.scalar(-0.5, wrt_dtype)?;
-                            let cube = self.mul(dependent_node, self.mul(dependent_node, dependent_node)?)?;
+                            let square = self.mul(dependent_node, dependent_node)?;
+                            let cube = self.mul(dependent_node, square)?;
                             let quotient = self.div(neg_half, cube)?;
 
                             let next_pullback = self.mul(quotient, next_pullback)?;

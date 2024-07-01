@@ -88,19 +88,19 @@ impl Context {
 
         let mut mu_name = name.to_owned();
         mu_name.push_str("_mu");
-        let mu = self.parameter(mu_name, param_shapes, dtype)?;
+        let mu = self.parameter(mu_name, param_shapes.clone(), dtype)?;
 
         let mut sigma_name = name.to_owned();
         sigma_name.push_str("_sigma");
-        let sigma = self.parameter(sigma_name, param_shapes, dtype)?;
+        let sigma = self.parameter(sigma_name, param_shapes.clone(), dtype)?;
 
         let mut alpha_name = name.to_owned();
         alpha_name.push_str("_alpha");
-        let alpha = self.parameter(alpha_name, param_shapes, dtype)?;
+        let alpha = self.parameter(alpha_name, param_shapes.clone(), dtype)?;
 
         let mut beta_name = name.to_owned();
         beta_name.push_str("_beta");
-        let beta = self.parameter(beta_name, param_shapes, dtype)?;
+        let beta = self.parameter(beta_name, param_shapes.clone(), dtype)?;
 
         let epsilon = self.scalar(eps, dtype)?;
 

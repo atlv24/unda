@@ -235,6 +235,25 @@ impl Context {
                             dependent_pullbacks.push(next_pullback);
                         }
 
+                        Operation::Sqrt(a) => {
+                            let next_pullback = self.diff(output, dependent_node)?;
+                            let half = self.scalar(0.5, wrt_dtype)?;
+                            let quotient = self.div(half, dependent_node)?;
+
+                            let next_pullback = self.mul(quotient, next_pullback)?;
+                            dependent_pullbacks.push(next_pullback);
+                        }
+
+                        Operation::InvSqrt(a) => {
+                            let next_pullback = self.diff(output, dependent_node)?;
+                            let neg_half = self.scalar(-0.5, wrt_dtype)?;
+                            let cube = self.mul(dependent_node, self.mul(dependent_node, dependent_node)?)?;
+                            let quotient = self.div(neg_half, cube)?;
+
+                            let next_pullback = self.mul(quotient, next_pullback)?;
+                            dependent_pullbacks.push(next_pullback);
+                        }
+
                         Operation::Neg(_) => {
                             let next_pullback = self.diff(output, dependent_node)?;
                             dependent_pullbacks.push(self.neg(next_pullback));
@@ -297,18 +316,26 @@ impl Context {
                             } else if epsilon == with_respect_to {
                                 panic!("You shouldn't differentiate the epsilon parameter of batch normalization.")
                             } else if alpha == with_respect_to {
-                                let sqrt_sig = self.sqrt(sigma);
-                                let sig_eps = self.add(sqrt_sig, epsilon)?;
+                                let sig_eps = self.add(sigma, epsilon)?;
+                                let sqrt_sig = self.inv_sqrt(sigma)?;
                                 let x_mu = self.sub(x, mu)?;
-                                let x_div = self.div(x_mu, sig_eps)?;
-                                dependent_pullbacks.push(self.mul(next_pullback, x_div)?);
+                                let x_div = self.mul(x_mu, sqrt_sig)?;
+                                let mut pullback = self.mul(next_pullback, x_div)?;
+                                for i in 0..self.nodes[x].shape.ndims() - 1 {
+                                    pullback = self.reduce_sum(pullback, i as i64, true)?;
+                                }
+                                dependent_pullbacks.push(pullback);
                             } else if beta == with_respect_to {
                                 dependent_pullbacks.push(next_pullback);
                             } else {
-                                let sqrt_sig = self.sqrt(sigma);
-                                let sig_eps = self.add(sqrt_sig, epsilon)?;
-                                let alpha_div = self.div(alpha, sig_eps)?;
-                                dependent_pullbacks.push(self.mul(next_pullback, alpha_div)?);
+                                let sig_eps = self.add(sigma, epsilon)?;
+                                let sqrt_sig = self.inv_sqrt(sigma)?;
+                                let alpha_div = self.mul(alpha, sqrt_sig)?;
+                                let mut pullback = self.mul(next_pullback, alpha_div)?;
+                                for i in 0..self.nodes[x].shape.ndims() - 1 {
+                                    pullback = self.reduce_sum(pullback, i as i64, true)?;
+                                }
+                                dependent_pullbacks.push(pullback);
                             }
                         }
 

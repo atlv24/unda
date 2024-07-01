@@ -123,6 +123,8 @@ impl Context {
             Operation::Neg(a) => format!("Neg ({})", self.to_string(a)),
             Operation::Exp(a) => format!("Exp ({})", self.to_string(a)),
             Operation::Log(a) => format!("Log ({})", self.to_string(a)),
+            Operation::Sqrt(a) => format!("Sqrt ({})", self.to_string(a)),
+            Operation::InvSqrt(a) => format!("InvSqrt ({})", self.to_string(a)),
             Operation::Transpose(a, b) => format!("Transpose: ({}) ({:?})", self.to_string(a), b),
             Operation::RngUniform(a, b, shape) => format!(
                 "RngUniform: ({}) ({}) ({})",
@@ -207,7 +209,7 @@ impl Context {
                 x,
             } => {
                 format!(
-                    "BatchNorm {} {} {} {} {}",
+                    "BatchNorm {} {} {} {} {} {}",
                     self.to_string(mu),
                     self.to_string(sigma),
                     self.to_string(epsilon),

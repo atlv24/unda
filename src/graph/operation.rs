@@ -18,6 +18,8 @@ pub enum Operation {
     Neg(NodeIdentifier),
     Log(NodeIdentifier),
     Exp(NodeIdentifier),
+    Sqrt(NodeIdentifier),
+    InvSqrt(NodeIdentifier),
 
     Equal(NodeIdentifier, NodeIdentifier),
     NotEqual(NodeIdentifier, NodeIdentifier),
@@ -116,7 +118,13 @@ impl Hash for Operation {
             Self::StopGradient(a) => {
                 a.hash(state);
             }
-            Self::Log(a) | Self::Exp(a) | Self::Reshape(a) | Self::ZerosLike(a) | Self::Neg(a) => {
+            Self::Log(a)
+            | Self::Exp(a)
+            | Self::Reshape(a)
+            | Self::ZerosLike(a)
+            | Self::Neg(a)
+            | Self::Sqrt(a)
+            | Self::InvSqrt(a) => {
                 a.hash(state);
             }
             Self::Select {

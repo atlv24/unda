@@ -102,6 +102,30 @@ impl Context {
         Ok(node_id)
     }
 
+    pub fn sqrt(&mut self, a: NodeIdentifier) -> Result<NodeIdentifier> {
+        let node = Node {
+            callsite: callsite!(1),
+            shape: self.nodes[a].shape.clone(),
+            operation: Operation::Sqrt(a),
+            dtype: self.nodes[a].dtype,
+        };
+        let node_id = self.nodes.insert(node);
+        self.dependent_nodes.entry(a).or_default().push(node_id);
+        Ok(node_id)
+    }
+
+    pub fn inv_sqrt(&mut self, a: NodeIdentifier) -> Result<NodeIdentifier> {
+        let node = Node {
+            callsite: callsite!(1),
+            shape: self.nodes[a].shape.clone(),
+            operation: Operation::InvSqrt(a),
+            dtype: self.nodes[a].dtype,
+        };
+        let node_id = self.nodes.insert(node);
+        self.dependent_nodes.entry(a).or_default().push(node_id);
+        Ok(node_id)
+    }
+
     pub fn rng_uniform(&mut self, min: NodeIdentifier, max: NodeIdentifier, shape: &[u32]) -> Result<NodeIdentifier> {
         if self.nodes[min].dtype != self.nodes[max].dtype {
             Err(ContextError::IncompatibleOperandTypes(

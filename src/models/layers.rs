@@ -1,4 +1,4 @@
-use crate::graph::{constant, dtypes, Context, Node, NodeIdentifier, Operation, Result, Shape};
+use crate::graph::{callsite::callsite, dtypes, Context, Node, NodeIdentifier, Operation, Result, Shape};
 
 use super::initializers::{ConstInit, Initializer};
 
@@ -79,43 +79,64 @@ impl Context {
         let last_dim = shape.sizes[shape.ndims() - 1];
         let dtype = self.nodes[input_node].dtype;
 
-        check_fp_type(dtype)?;
+        dtypes::check_fp_type(dtype)?;
 
         let mut param_shapes = shape.clone();
         for i in 0..param_shapes.ndims() - 1 {
             param_shapes.sizes[i] = 1;
         }
 
-        let mut mu_name = name;
+        let mut mu_name = name.to_owned();
         mu_name.push_str("_mu");
         let mu = self.parameter(mu_name, param_shapes, dtype)?;
 
-        let mut sigma_name = name;
+        let mut sigma_name = name.to_owned();
         sigma_name.push_str("_sigma");
         let sigma = self.parameter(sigma_name, param_shapes, dtype)?;
 
-        let mut alpha_name = name;
+        let mut alpha_name = name.to_owned();
         alpha_name.push_str("_alpha");
         let alpha = self.parameter(alpha_name, param_shapes, dtype)?;
 
-        let mut beta_name = name;
+        let mut beta_name = name.to_owned();
         beta_name.push_str("_beta");
         let beta = self.parameter(beta_name, param_shapes, dtype)?;
 
-        let epsilon = self.scalar(epsilon, dtype)?;
+        let epsilon = self.scalar(eps, dtype)?;
 
-        let mu_literal = ConstInit(0.0).initialize(0, param_shapes, dtype)?;
-        let beta_literal = ConstInit(0.0).initialize(0, param_shapes, dtype)?;
-        let alpha_literal = ConstInit(1.0).initialize(0, param_shapes, dtype)?;
-        let sigma_literal = ConstInit(1.0).initialize(0, param_shapes, dtype)?;
+        let mu_literal = ConstInit { constant: 0.0 }.initialize(0, &param_shapes, dtype)?;
+        let beta_literal = ConstInit { constant: 0.0 }.initialize(0, &param_shapes, dtype)?;
+        let alpha_literal = ConstInit { constant: 1.0 }.initialize(0, &param_shapes, dtype)?;
+        let sigma_literal = ConstInit { constant: 1.0 }.initialize(0, &param_shapes, dtype)?;
 
-        let batchnorm_node = self.nodes.insert(Operation::BatchNorm {
-            mu,
-            sigma,
-            epsilon,
-            alpha,
-            beta,
-            x: input_node,
+        let batchnorm_node = self.nodes.insert(Node {
+            callsite: callsite!(1),
+            shape,
+            operation: Operation::BatchNorm {
+                mu,
+                sigma,
+                epsilon,
+                alpha,
+                beta,
+                x: input_node,
+            },
+            dtype,
         });
+
+        return Ok((
+            batchnorm_node,
+            BatchNormParams {
+                mu,
+                sigma,
+                alpha,
+                beta,
+            },
+            BatchNormParams {
+                mu: mu_literal,
+                sigma: sigma_literal,
+                alpha: alpha_literal,
+                beta: beta_literal,
+            },
+        ));
     }
 }

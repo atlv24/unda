@@ -142,7 +142,14 @@ impl Hash for Operation {
                 alpha,
                 beta,
                 x,
-            } => node.hash(state),
+            } => {
+                mu.hash(state);
+                sigma.hash(state);
+                epsilon.hash(state);
+                alpha.hash(state);
+                beta.hash(state);
+                x.hash(state);
+            }
             Self::OneHot(node) => node.hash(state),
             Self::Transpose(a, dim) => {
                 a.hash(state);

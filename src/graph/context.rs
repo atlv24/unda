@@ -58,19 +58,25 @@ pub enum ContextError {
     #[error("Type is not differentiable, differentiable types are F16, Bf16, F32, F64, C64, C128")]
     NonDifferentiableTypeError(Callsite),
 
-    #[error("Expected integral type, got {0}. Integral types are S8, S16, S32, S64, U8, U16, U32, U64")]
+    #[error(
+        "Expected integral type, got {0}. Integral types are S8, S16, S32, S64, U8, U16, U32, U64"
+    )]
     IntegralTypeError(xla::ElementType, Callsite),
 
     #[error("Expected real type, got {0}. Real types are F16, Bf16, F32, F64")]
     RealTypeError(xla::ElementType, Callsite),
 
-    #[error("Expected floating point type, got {0}. Real types are F16, Bf16, F32, F64, C64, C128")]
+    #[error(
+        "Expected floating point type, got {0}. Real types are F16, Bf16, F32, F64, C64, C128"
+    )]
     FPTypeError(xla::ElementType, Callsite),
 
     #[error("Expected tensor of rank {0}, got {1}")]
     RankError(usize, usize, Callsite),
 
-    #[error("Invalid permutation passed to transpose. Expected permutation of length {0}, got {1}")]
+    #[error(
+        "Invalid permutation passed to transpose. Expected permutation of length {0}, got {1}"
+    )]
     TransposeLenError(usize, usize, Callsite),
 
     //Might want to create a new error type for model errors instead of just using the graph error
@@ -82,7 +88,7 @@ pub enum ContextError {
     InvalidLayerConstructionError(String),
 
     #[error("Expected output size {0} does not match actual size {1}")]
-    IncorrectOutputSizeError(usize, usize)
+    IncorrectOutputSizeError(usize, usize),
 }
 
 pub type Result<T> = std::result::Result<T, ContextError>;
@@ -109,15 +115,27 @@ impl Context {
             Operation::Add(a, b) => format!("Add ({}) ({})", self.to_string(a), self.to_string(b)),
             Operation::Sub(a, b) => format!("Sub ({}) ({})", self.to_string(a), self.to_string(b)),
             Operation::Mul(a, b) => format!("Mul ({}) ({})", self.to_string(a), self.to_string(b)),
-            Operation::MatMul(a, b) => format!("MatMul ({}) ({})", self.to_string(a), self.to_string(b)),
+            Operation::MatMul(a, b) => {
+                format!("MatMul ({}) ({})", self.to_string(a), self.to_string(b))
+            }
             Operation::Div(a, b) => format!("Div ({}) ({})", self.to_string(a), self.to_string(b)),
             Operation::Pow(a, b) => format!("Pow ({}) ({})", self.to_string(a), self.to_string(b)),
             Operation::Neg(a) => format!("Neg ({})", self.to_string(a)),
             Operation::Exp(a) => format!("Exp ({})", self.to_string(a)),
             Operation::Log(a) => format!("Log ({})", self.to_string(a)),
             Operation::Transpose(a, b) => format!("Transpose: ({}) ({:?})", self.to_string(a), b),
-            Operation::RngUniform(a, b, shape) => format!("RngUniform: ({}) ({}) ({})", self.to_string(a), self.to_string(b), shape),
-            Operation::RngNormal(a, b, shape) => format!("RngNormal: ({}) ({}) ({})", self.to_string(a), self.to_string(b), shape),
+            Operation::RngUniform(a, b, shape) => format!(
+                "RngUniform: ({}) ({}) ({})",
+                self.to_string(a),
+                self.to_string(b),
+                shape
+            ),
+            Operation::RngNormal(a, b, shape) => format!(
+                "RngNormal: ({}) ({}) ({})",
+                self.to_string(a),
+                self.to_string(b),
+                shape
+            ),
             Operation::Equal(a, b) => {
                 format!("LessThan ({}) ({})", self.to_string(a), self.to_string(b))
             }
@@ -180,22 +198,36 @@ impl Context {
                 input_node.shape.sizes[1],
                 input_node.dtype
             ),
-            Operation::ReduceMax {
-                node,
-                dim,
-            } => format!("ReduceMax {} {}", self.to_string(node), dim),
-            Operation::ReduceArgmax {
-                node,
-                dim,
-            } => format!("ReduceArgmax {} {}", self.to_string(node), dim),
-            Operation::ReduceSum {
-                node,
-                dim,
-            } => format!("ReduceSum {} {}", self.to_string(node), dim),
-            Operation::ReduceMean {
-                node,
-                dim,
-            } => format!("ReduceMean {} {}", self.to_string(node), dim),
+            Operation::BatchNorm {
+                mu,
+                sigma,
+                epsilon,
+                alpha,
+                beta,
+                x,
+            } => {
+                format!(
+                    "BatchNorm {} {} {} {} {}",
+                    self.to_string(mu),
+                    self.to_string(sigma),
+                    self.to_string(epsilon),
+                    self.to_string(alpha),
+                    self.to_string(beta),
+                    self.to_string(x)
+                )
+            }
+            Operation::ReduceMax { node, dim } => {
+                format!("ReduceMax {} {}", self.to_string(node), dim)
+            }
+            Operation::ReduceArgmax { node, dim } => {
+                format!("ReduceArgmax {} {}", self.to_string(node), dim)
+            }
+            Operation::ReduceSum { node, dim } => {
+                format!("ReduceSum {} {}", self.to_string(node), dim)
+            }
+            Operation::ReduceMean { node, dim } => {
+                format!("ReduceMean {} {}", self.to_string(node), dim)
+            }
         }
     }
 }

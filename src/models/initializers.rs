@@ -9,8 +9,8 @@ pub trait Initializer {
     ) -> xla::Result<xla::Literal>;
 }
 
-struct ConstInit {
-    constant: f32
+pub struct ConstInit {
+    pub constant: f32
 }
 
 impl Initializer for ConstInit {

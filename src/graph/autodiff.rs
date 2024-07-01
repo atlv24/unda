@@ -278,6 +278,8 @@ impl Context {
                             }
                         }
 
+                        // WILL FAIL!!!
+                        // TODO: ReduceSum gradients for alpha and beta over the first few axes
                         Operation::BatchNorm {
                             mu,
                             sigma,
@@ -306,7 +308,7 @@ impl Context {
                                 let sqrt_sig = self.sqrt(sigma);
                                 let sig_eps = self.add(sqrt_sig, epsilon)?;
                                 let alpha_div = self.div(alpha, sig_eps)?;
-                                dependent_pullbacks.push(self.mul(next_pullback, alpha_div));
+                                dependent_pullbacks.push(self.mul(next_pullback, alpha_div)?);
                             }
                         }
 

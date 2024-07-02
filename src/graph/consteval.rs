@@ -354,7 +354,7 @@ impl Context {
         //iterate through all dependent node vecs that contain the to_remove node, and replace them
         //with rep_with node
         
-        for (id, deps) in self.dependent_nodes.clone().iter().filter(|(_, nodes)| nodes.contains(&to_remove)) {
+        /*for (id, deps) in self.dependent_nodes.clone().iter().filter(|(_, nodes)| nodes.contains(&to_remove)) {
             let deps_without = deps.clone().into_iter().filter(|node| node != &to_remove).collect::<Vec<NodeIdentifier>>();
 
             self.dependent_nodes.insert(*id, deps_without);
@@ -375,6 +375,7 @@ impl Context {
         }*/
 
 
+        */
         if let Some((idx, _)) = self.parameters.iter().enumerate().find(|(_, node)| *node == &to_remove) {
             self.parameters.remove(idx);
         }
@@ -383,7 +384,7 @@ impl Context {
             self.constants.remove(idx);
         }
 
-        self.nodes.remove(to_remove);
+        //self.nodes.remove(to_remove);
 
         Ok(changed)
     }

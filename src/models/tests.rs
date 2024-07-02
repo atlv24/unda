@@ -176,14 +176,15 @@ mod tests {
         let exec = f.compile(&name, [mult], &client).expect("executable");
 
         let x_in = xla::Literal::scalar(2);
-        let device_result = exec.execute::<Literal>(&[x_in]).expect("execute");
+        let y_in = xla::Literal::scalar(2);
+        let device_result = exec.execute::<Literal>(&[x_in, y_in]).expect("execute");
         let host_result = device_result[0][0]
             .to_literal_sync()
             .expect("to_literal_sync");
         let untupled_result = host_result.to_tuple1().expect("untuple");
         let rust_result = untupled_result.to_vec::<f32>().expect("to_vec");
 
-        assert_eq!(4f32, rust_result[0])
+        assert_eq!(vec![4f32], rust_result)
     }
 
     #[test]

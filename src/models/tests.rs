@@ -146,7 +146,7 @@ mod tests {
         let name = "test";
         let exec = f.compile(&name, [square], &client).expect("executable");
 
-        let x_in = xla::Literal::scalar(2);
+        let x_in = xla::Literal::scalar(2f32);
         let device_result = exec.execute::<Literal>(&[x_in]).expect("execute");
         let host_result = device_result[0][0]
             .to_literal_sync()
@@ -175,8 +175,8 @@ mod tests {
         let name = "test";
         let exec = f.compile(&name, [mult], &client).expect("executable");
 
-        let x_in = xla::Literal::scalar(2);
-        let y_in = xla::Literal::scalar(2);
+        let x_in = xla::Literal::scalar(2f32);
+        let y_in = xla::Literal::scalar(2f32);
         let device_result = exec.execute::<Literal>(&[x_in, y_in]).expect("execute");
         let host_result = device_result[0][0]
             .to_literal_sync()
@@ -207,7 +207,7 @@ mod tests {
         let name = "test";
         let exec = f.compile(&name, [output[0]], &client).expect("executable");
 
-        let x_in = xla::Literal::scalar(2);
+        let x_in = xla::Literal::scalar(2f32);
         let device_result = exec.execute::<Literal>(&[x_in]).expect("execute");
         let host_result = device_result[0][0]
             .to_literal_sync()

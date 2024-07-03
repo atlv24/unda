@@ -180,6 +180,11 @@ impl Context {
                 if let Some((id, _)) = param_idx {
                     self.parameters.remove(id);
                 }
+
+                let node_ext = self.dependent_nodes.get(&rep_with[i]).unwrap_or(&vec![]).clone();
+                if let Some(node_deps) = self.dependent_nodes.get_mut(&params_with_name[i]) {
+                    node_deps.extend(node_ext.iter())
+                }
             }
         }
 

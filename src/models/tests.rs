@@ -158,7 +158,7 @@ mod tests {
     }
 
     #[test]
-    fn test_merge() {
+    fn test_merge_orig() {
         let mut f = Context::new();
         let x = f.parameter("x", [], xla::ElementType::F32).expect("x");
         let two = f.scalar(2, xla::ElementType::F32).expect("2");
@@ -186,6 +186,38 @@ mod tests {
 
         assert_eq!(vec![4f32], rust_result)
     }
+
+    #[test]
+    fn test_merge_merged() {
+        let mut f = Context::new();
+        let x = f.parameter("x", [], xla::ElementType::F32).expect("x");
+        let two = f.scalar(2, xla::ElementType::F32).expect("2");
+        let mult = f.mul(x, two).expect("2x");
+
+        let mut g = Context::new();
+        let y = g.parameter("y", [], xla::ElementType::F32).expect("y");
+        let two = g.scalar(2, xla::ElementType::F32).expect("2 2");
+        let square = g.pow(y, two).expect("y^2");
+
+        let new_square = f.merge_graphs(&g, &[square]).expect("Merge f and g");
+
+        let client = xla::PjRtClient::cpu().expect("Client");
+        let name = "test";
+        let exec = f.compile(&name, [new_square[0]], &client).expect("executable");
+
+        let x_in = xla::Literal::scalar(2f32);
+        let y_in = xla::Literal::scalar(3f32);
+        let device_result = exec.execute::<Literal>(&[x_in, y_in]).expect("execute");
+        let host_result = device_result[0][0]
+            .to_literal_sync()
+            .expect("to_literal_sync");
+        let untupled_result = host_result.to_tuple1().expect("untuple");
+        let rust_result = untupled_result.to_vec::<f32>().expect("to_vec");
+
+        assert_eq!(vec![9f32], rust_result)
+    }
+
+
 
     #[test]
     fn test_fusion() {

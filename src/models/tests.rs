@@ -12,7 +12,7 @@ mod tests {
 
         let client = xla::PjRtClient::cpu().expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, [lr], &client).expect("executable");
+        let executable = ctx.compile(&name, vec![lr], &client).expect("executable");
 
         for i in -10..10 {
             let x_input = xla::Literal::scalar(i as f32);
@@ -38,7 +38,7 @@ mod tests {
 
         let client = xla::PjRtClient::cpu().expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, [lr], &client).expect("executable");
+        let executable = ctx.compile(&name, vec![lr], &client).expect("executable");
 
         let x_input = xla::Literal::scalar(2f32);
         let device_result = executable.execute(&[x_input]).expect("execute");
@@ -71,7 +71,7 @@ mod tests {
 
         let client = xla::PjRtClient::cpu().expect("client");//gpu(0.7, false).expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, [relu], &client).expect("executable");
+        let executable = ctx.compile(&name, vec![relu], &client).expect("executable");
 
         let device_result = executable.execute::<xla::Literal>(&[]).expect("execute");
         let host_result = device_result[0][0]
@@ -93,7 +93,7 @@ mod tests {
 
         let client = xla::PjRtClient::cpu().expect("client");//gpu(0.7, false).expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, [dydx], &client).expect("executable");
+        let executable = ctx.compile(&name, vec![dydx], &client).expect("executable");
 
         let x_input = xla::Literal::vec1(&[1.0f32,3.0f32,4.0f32,0.5f32]);
 
@@ -116,7 +116,7 @@ mod tests {
 
         let client = xla::PjRtClient::cpu().expect("client");//gpu(0.7, false).expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, [dydx], &client).expect("executable");
+        let executable = ctx.compile(&name, vec![dydx], &client).expect("executable");
 
         let x_input = xla::Literal::vec1(&[1.0f32,3.0f32,4.0f32,0.5f32]);
 
@@ -144,7 +144,7 @@ mod tests {
 
         let client = xla::PjRtClient::cpu().expect("Client");
         let name = "test";
-        let exec = f.compile(&name, [square], &client).expect("executable");
+        let exec = f.compile(&name, vec![square], &client).expect("executable");
 
         let x_in = xla::Literal::scalar(2);
         let device_result = exec.execute::<Literal>(&[x_in]).expect("execute");
@@ -173,7 +173,7 @@ mod tests {
 
         let client = xla::PjRtClient::cpu().expect("Client");
         let name = "test";
-        let exec = f.compile(&name, [mult], &client).expect("executable");
+        let exec = f.compile(&name, vec![mult], &client).expect("executable");
 
         let x_in = xla::Literal::scalar(2);
         let device_result = exec.execute::<Literal>(&[x_in]).expect("execute");
@@ -204,7 +204,7 @@ mod tests {
 
         let client = xla::PjRtClient::cpu().expect("Client");
         let name = "test";
-        let exec = f.compile(&name, [output[0]], &client).expect("executable");
+        let exec = f.compile(&name, vec![output[0]], &client).expect("executable");
 
         let x_in = xla::Literal::scalar(2);
         let device_result = exec.execute::<Literal>(&[x_in]).expect("execute");

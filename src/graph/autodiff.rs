@@ -318,7 +318,7 @@ impl Context {
                                 panic!("You shouldn't differentiate the epsilon parameter of batch normalization.")
                             } else if alpha == with_respect_to {
                                 let sig_eps = self.add(sigma, epsilon)?;
-                                let sqrt_sig = self.inv_sqrt(sigma)?;
+                                let sqrt_sig = self.inv_sqrt(sig_eps)?;
                                 let x_mu = self.sub(x, mu)?;
                                 let x_div = self.mul(x_mu, sqrt_sig)?;
                                 let mut pullback = self.mul(next_pullback, x_div)?;
@@ -330,7 +330,7 @@ impl Context {
                                 dependent_pullbacks.push(next_pullback);
                             } else {
                                 let sig_eps = self.add(sigma, epsilon)?;
-                                let sqrt_sig = self.inv_sqrt(sigma)?;
+                                let sqrt_sig = self.inv_sqrt(sig_eps)?;
                                 let alpha_div = self.mul(alpha, sqrt_sig)?;
                                 let mut pullback = self.mul(next_pullback, alpha_div)?;
                                 for i in 0..self.nodes[x].shape.ndims() - 1 {

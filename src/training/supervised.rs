@@ -81,13 +81,12 @@ impl<U, O: Optimizer<U>> SupervisedTrainerStaticBatch<U, O> {
         self.model.network.nodes[self.model.params[0]].shape.sizes[0] as usize
     }
 
-    pub fn train<D: Iterator<Item = (Vec<Literal>, Vec<Literal>)>>(
+    pub fn train_infinite_data<D: Iterator<Item = (Vec<Literal>, Vec<Literal>)>>(
         &self,
         client: PjRtClient,
         mut init_params: Vec<Literal>,
         mut train_dataset: D,
-        infinite_data: bool,
-        epochs_or_steps: usize,
+        n_steps: usize,
         print_progress: bool,
     ) -> Result<(
         // loss history
@@ -115,10 +114,86 @@ impl<U, O: Optimizer<U>> SupervisedTrainerStaticBatch<U, O> {
         let mut record_loss = Vec::new();
         let mut record_metrics = Vec::new();
 
-        if infinite_data {
-            for i in 0..epochs_or_steps {
-                let (mut inps, mut targs) = train_dataset.next().unwrap();
+        for i in 0..n_steps {
+            let (mut inps, mut targs) = train_dataset.next().unwrap();
 
+            assert_eq!(self.n_inputs, inps.len());
+            assert_eq!(self.n_targets, targs.len());
+
+            let mut all_inputs = Vec::new();
+            for param in parameters.drain(0..) {
+                all_inputs.push(param)
+            }
+            for inp in inps.drain(0..) {
+                all_inputs.push(client.buffer_from_host_literal(None, &inp)?);
+            }
+            for targ in targs.drain(0..) {
+                all_inputs.push(client.buffer_from_host_literal(None, &targ)?);
+            }
+            for os in opt_state.drain(0..) {
+                all_inputs.push(os);
+            }
+
+            let mut all_outputs = executable.execute_b(&all_inputs)?.pop().unwrap();
+            let network_outputs: Vec<PjRtBuffer> = all_outputs.drain(0..self.n_outputs).collect();
+            let loss = all_outputs.pop().unwrap();
+            let mut metrics: Vec<PjRtBuffer> = all_outputs.drain(0..self.n_metrics).collect();
+            opt_state = all_outputs.drain(0..self.optimizer.state_size()).collect();
+            parameters = all_outputs;
+
+            let loss_host = loss.to_literal_sync()?;
+            let mut metrics_host = Vec::new();
+            for metric in metrics.drain(0..) {
+                metrics_host.push(metric.to_literal_sync()?);
+            }
+
+            record_loss.push(loss_host);
+            record_metrics.push(metrics_host)
+        }
+
+        let mut parameters_host = Vec::new();
+        for param in parameters {
+            parameters_host.push(param.to_literal_sync()?);
+        }
+
+        Ok((record_loss, record_metrics, parameters_host))
+    }
+
+    pub fn train_finite_data<D: Iterator<Item = (Vec<Literal>, Vec<Literal>)>>(
+        &self,
+        client: PjRtClient,
+        mut init_params: Vec<Literal>,
+        mut train_dataset: fn(usize) -> D,
+        n_epochs: usize,
+        print_progress: bool,
+    ) -> Result<(
+        // loss history
+        Vec<Literal>,
+        // auxillary metric history
+        Vec<Vec<Literal>>,
+        // final network params
+        Vec<Literal>,
+    )> {
+        assert_eq!(self.n_params, init_params.len());
+
+        let executable = self.full_pass.compile(&client)?;
+
+        let mut parameters = Vec::new();
+        for param in init_params.drain(0..) {
+            parameters.push(client.buffer_from_host_literal(None, &param)?)
+        }
+
+        let mut opt_state_host = self.optimizer.init_state();
+        let mut opt_state = Vec::new();
+        for osh in opt_state_host.drain(0..) {
+            opt_state.push(client.buffer_from_host_literal(None, &osh)?);
+        }
+
+        let mut record_loss = Vec::new();
+        let mut record_metrics = Vec::new();
+
+        for i in 0..n_epochs {
+            for (mut inps, mut targs) in train_dataset(i) {
                 assert_eq!(self.n_inputs, inps.len());
                 assert_eq!(self.n_targets, targs.len());
 
@@ -137,7 +212,8 @@ impl<U, O: Optimizer<U>> SupervisedTrainerStaticBatch<U, O> {
                 }
 
                 let mut all_outputs = executable.execute_b(&all_inputs)?.pop().unwrap();
-                let network_outputs: Vec<PjRtBuffer> = all_outputs.drain(0..self.n_outputs).collect();
+                let network_outputs: Vec<PjRtBuffer> =
+                    all_outputs.drain(0..self.n_outputs).collect();
                 let loss = all_outputs.pop().unwrap();
                 let mut metrics: Vec<PjRtBuffer> = all_outputs.drain(0..self.n_metrics).collect();
                 opt_state = all_outputs.drain(0..self.optimizer.state_size()).collect();

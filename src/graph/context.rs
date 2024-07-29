@@ -79,6 +79,9 @@ pub enum ContextError {
     )]
     TransposeLenError(usize, usize, Callsite),
 
+    #[error("Cannot fuse parameter of type to a node of type {1}")]
+    InvalidFuseTargetsError(xla::ElementType, xla::ElementType),
+
     //Might want to create a new error type for model errors instead of just using the graph error
     //type, sticking this here for now though.
     #[error("Tried calling model.diff() before model had a loss function")]

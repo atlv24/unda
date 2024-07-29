@@ -23,6 +23,7 @@ pub struct SupervisedModel {
 
     // separate context which takes parameters, outputs, and targets
     pub(crate) compute_metrics: Context,
+    pub(crate) metric_names: Vec<String>,
     // additional inputs to compute_metrics as the targets of the supervised learning algorithm
     pub(crate) targets: Vec<NodeIdentifier>,
     // index into compute_metrics context to find differentiable loss function
@@ -49,6 +50,7 @@ impl SupervisedModel {
         inputs: Vec<NodeIdentifier>,
         outputs: Vec<NodeIdentifier>,
         compute_metrics: Context,
+        metric_names: Vec<String>,
         targets: Vec<NodeIdentifier>,
         loss: NodeIdentifier,
         auxiliary_metrics: Vec<NodeIdentifier>,
@@ -92,6 +94,7 @@ impl SupervisedModel {
             inputs,
             outputs,
             compute_metrics,
+            metric_names,
             targets,
             loss: loss_update,
             auxiliary_metrics,

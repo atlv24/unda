@@ -1,6 +1,8 @@
+use xla::Literal;
+
 use crate::graph::context::Result;
 use crate::graph::{Context, NodeIdentifier};
-use crate::graph::{ContextError, Node};
+use crate::graph::{ContextError};
 
 pub trait Optimizer<U> {
     fn get_step(&self) -> &Context;
@@ -12,7 +14,8 @@ pub trait Optimizer<U> {
     fn get_old_state(&self) -> &Vec<NodeIdentifier>;
     fn get_new_state(&self) -> &Vec<NodeIdentifier>;
     fn get_user_params(&self) -> U;
-    fn initialize(user_params: U, model_params: Vec<NodeIdentifier>, model: &Context) -> Self;
+    fn new(user_params: U, model_params: Vec<NodeIdentifier>, model: &Context) -> Self;
+    fn init_state(&self) -> Vec<Literal>;
 }
 
 pub struct ChainedOptimizer<U> {
@@ -89,7 +92,7 @@ impl Optimizer<f32> for SGD {
     fn get_user_params(&self) -> f32 {
         self.learning_rate
     }
-    fn initialize(learning_rate: f32, model_params: Vec<NodeIdentifier>, model: &Context) -> SGD {
+    fn new(learning_rate: f32, model_params: Vec<NodeIdentifier>, model: &Context) -> SGD {
         let build = || {
             let mut step = Context::new();
 
@@ -124,7 +127,10 @@ impl Optimizer<f32> for SGD {
             })
         };
 
-        build().expect("Failed to initialize SGD")
+        build().expect("Failed to new SGD")
+    }
+    fn init_state(&self) -> Vec<Literal> {
+        return Vec::new();
     }
 }
 
@@ -165,7 +171,7 @@ impl Optimizer<f32> for BatchNormOptimizer {
     fn get_user_params(&self) -> f32 {
         self.momentum
     }
-    fn initialize(
+    fn new(
         momentum: f32,
         batchnorm_params: Vec<NodeIdentifier>,
         model: &Context,
@@ -226,6 +232,9 @@ impl Optimizer<f32> for BatchNormOptimizer {
             })
         };
 
-        build().expect("Failed to initialize Batch Normalization optimizer")
+        build().expect("Failed to new Batch Normalization optimizer")
+    }
+    fn init_state(&self) -> Vec<Literal> {
+        return Vec::new()
     }
 }

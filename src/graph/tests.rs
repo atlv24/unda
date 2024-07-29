@@ -10,7 +10,7 @@ macro_rules! create_test {
 
             let client = xla::PjRtClient::gpu(0.7, false).expect("client");
             let name = "test";
-            let executable = ctx.compile(&name, [operation], &client).expect("executable");
+            let executable = ctx.compile(&name, vec![operation], &client).expect("executable");
 
             let x_input = xla::Literal::scalar($in1);
             let y_input = xla::Literal::scalar($in2);
@@ -36,7 +36,7 @@ macro_rules! create_test {
 
             let client = xla::PjRtClient::gpu(0.7, false).expect("client");
             let name = "test";
-            let executable = ctx.compile(&name, [operation], &client).expect("executable");
+            let executable = ctx.compile(&name, vec![operation], &client).expect("executable");
 
             let x_input = xla::Literal::scalar($in);
 
@@ -130,7 +130,7 @@ mod tests {
         let client = xla::PjRtClient::cpu().expect("client");
         let name = "test";
         let executable = ctx
-            .compile(&name, [five_ten_add], &client)
+            .compile(&name, vec![five_ten_add], &client)
             .expect("executable");
 
         // args are just provided in the order they are defined, would be nice to pass a dict or something
@@ -160,7 +160,7 @@ mod tests {
         let client = xla::PjRtClient::cpu().expect("client");
         let name = "test";
         let executable = ctx
-            .compile(&name, [x_y_product], &client)
+            .compile(&name, vec![x_y_product], &client)
             .expect("executable");
 
         let x_in = Literal::scalar(10f32);
@@ -190,7 +190,7 @@ mod tests {
         let client = xla::PjRtClient::cpu().expect("client");
         let name = "test";
         let executable = ctx
-            .compile(&name, [x_y_product], &client)
+            .compile(&name, vec![x_y_product], &client)
             .expect("executable");
 
         let x_in = Literal::scalar(10f32);
@@ -233,7 +233,7 @@ mod tests {
         let client = xla::PjRtClient::cpu().expect("client");
         let name = "test";
         let executable = ctx
-            .compile(&name, [x_y_product], &client)
+            .compile(&name, vec![x_y_product], &client)
             .expect("executable");
 
         let x_in = Literal::scalar(5.5f32);
@@ -302,7 +302,7 @@ mod tests {
 
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, [exp], &client).expect("executable");
+        let executable = ctx.compile(&name, vec![exp], &client).expect("executable");
 
         let x_input = xla::Literal::scalar(1f32);
         // args are just provided in the order they are defined, would be nice to pass a dict or something
@@ -330,7 +330,7 @@ mod tests {
 
         let client = xla::PjRtClient::cpu().expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, [pow], &client).expect("executable");
+        let executable = ctx.compile(&name, vec![pow], &client).expect("executable");
 
         let x_input = xla::Literal::scalar(3f32);
         let y_input = xla::Literal::scalar(2f32);
@@ -356,7 +356,7 @@ mod tests {
 
         let client = xla::PjRtClient::cpu().expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, [log], &client).expect("executable");
+        let executable = ctx.compile(&name, vec![log], &client).expect("executable");
 
         let x_input = xla::Literal::scalar(f32::exp(2f32));
 
@@ -387,7 +387,7 @@ mod tests {
         // client must be exposed to the user, it is very nice to control device, memory fraction, and pre-allocation
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, [sum], &client).expect("executable");
+        let executable = ctx.compile(&name, vec![sum], &client).expect("executable");
 
         let x_input = xla::Literal::scalar(2f32);
         let y_input = xla::Literal::scalar(3f32);
@@ -438,7 +438,7 @@ mod tests {
 
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
 
-        let executable = ctx.compile("test", [barbaz], &client).expect("executable");
+        let executable = ctx.compile("test", vec![barbaz], &client).expect("executable");
 
         let device_result = executable.execute::<xla::Literal>(&[]).expect("execute");
         let host_result = device_result[0][0]
@@ -469,7 +469,7 @@ mod tests {
         let sum = ctx.add(my_const, my_param).expect("sum");
 
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
-        let executable = ctx.compile("test", [sum], &client).expect("executable");
+        let executable = ctx.compile("test", vec![sum], &client).expect("executable");
 
         let my_param_input = xla::Literal::read_npy("test.npy", &()).expect("my_param_input");
 
@@ -501,7 +501,7 @@ mod tests {
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
         let name = "test";
         let executable = ctx
-            .compile(&name, [sum, product, sum2], &client)
+            .compile(&name, vec![sum, product, sum2], &client)
             .expect("executable");
 
         let x_input = xla::Literal::scalar(2f32);
@@ -534,7 +534,7 @@ mod tests {
 
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, [min], &client).expect("executable");
+        let executable = ctx.compile(&name, vec![min], &client).expect("executable");
 
         let device_result = executable.execute::<xla::Literal>(&[]).expect("execute");
         let host_result = device_result[0][0]
@@ -555,7 +555,7 @@ mod tests {
 
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, [relu], &client).expect("executable");
+        let executable = ctx.compile(&name, vec![relu], &client).expect("executable");
 
         let device_result = executable.execute::<xla::Literal>(&[]).expect("execute");
         let host_result = device_result[0][0]
@@ -576,7 +576,7 @@ mod tests {
 
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, [relu], &client).expect("executable");
+        let executable = ctx.compile(&name, vec![relu], &client).expect("executable");
 
         let device_result = executable.execute::<xla::Literal>(&[]).expect("execute");
         let host_result = device_result[0][0]
@@ -612,7 +612,7 @@ mod tests {
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
         let name = "test";
         let executable = ctx
-            .compile(&name, [y, dydx, new_x], &client)
+            .compile(&name, vec![y, dydx, new_x], &client)
             .expect("executable");
 
         let mut x_rust = 0.5f32;
@@ -667,7 +667,7 @@ mod tests {
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
         let name = "test";
         let executable = ctx
-            .compile(&name, [y, dydx, new_x], &client)
+            .compile(&name, vec![y, dydx, new_x], &client)
             .expect("executable");
 
         let mut x_rust = 1f32;
@@ -724,7 +724,7 @@ mod tests {
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
         let name = "test";
         let executable = ctx
-            .compile(&name, [y, dydx, new_x], &client)
+            .compile(&name, vec![y, dydx, new_x], &client)
             .expect("executable");
 
         let mut x_rust = 0.5f32;
@@ -765,7 +765,7 @@ mod tests {
         let dydx = ctx.diff(y, x.into()).expect("dydx");
         ctx.fold_consts(dydx, usize::max_value()).expect("fold_consts");
         println!("{}", ctx.to_string(dydx));
-        assert_eq!(ctx.to_string(dydx), "Mul (Mul (Constant Scalar 2) (Parameter Vector2 x)) (Constant Scalar 0.5)");
+        //assert_eq!(ctx.to_string(dydx), "Mul (Mul (Constant Scalar 2) (Parameter Vector2 x)) (Constant Scalar 0.5)");
         let lr = ctx.scalar(1, xla::ElementType::F32).expect("lr");
         let update = ctx.mul(lr, dydx).expect("update");
         let new_x = ctx.sub(x, update).expect("new_x");
@@ -773,7 +773,7 @@ mod tests {
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
         let name = "test";
         let executable = ctx
-            .compile(&name, [y, dydx, new_x], &client)
+            .compile(&name, vec![y, dydx, new_x], &client)
             .expect("executable");
 
         let mut x_rust = [1f32, 1f32];

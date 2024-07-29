@@ -13,8 +13,8 @@ pub mod operation;
 pub mod parameter;
 pub mod shape;
 mod subterm;
-//mod tests;
-mod tests_cpu;
+mod tests;
+//mod tests_cpu;
 
 use callsite::{callsite, Callsite};
 pub use compile::CompileError;

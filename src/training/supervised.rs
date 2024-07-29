@@ -1,12 +1,12 @@
 use xla::{Literal, PjRtBuffer, PjRtClient, XlaComputation};
 
-use super::optimizer::Optimizer;
+use super::optimizers::Optimizer;
 use crate::graph::context::Result;
 use crate::graph::{Context, NodeIdentifier};
 use crate::graph::{ContextError, Node};
 use crate::models::supervised::SupervisedModel;
 
-struct SupervisedTrainerStaticBatch<U, O> {
+struct SupervisedTrainer<U, O> {
     pub(crate) model: SupervisedModel,
     pub(crate) optimizer: O,
     user_opt_params: U,
@@ -42,7 +42,7 @@ struct SupervisedTrainerStaticBatch<U, O> {
     full_pass: XlaComputation,
 }
 
-impl<U, O: Optimizer<U>> SupervisedTrainerStaticBatch<U, O> {
+impl<U, O: Optimizer<U>> SupervisedTrainer<U, O> {
     pub fn new(model: SupervisedModel, optimizer: O) -> Result<Self> {
         let mut full_pass_context = model.network.clone();
 
@@ -65,7 +65,7 @@ impl<U, O: Optimizer<U>> SupervisedTrainerStaticBatch<U, O> {
         let full_pass = full_pass_context.build("gradient_computation", grads)?;
 
         let user_opt_params = optimizer.get_user_params();
-        Ok(SupervisedTrainerStaticBatch {
+        Ok(SupervisedTrainer {
             model,
             optimizer,
             user_opt_params,

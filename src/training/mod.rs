@@ -1,2 +1,2 @@
-pub mod optimizer;
+pub mod optimizers;
 pub mod supervised;

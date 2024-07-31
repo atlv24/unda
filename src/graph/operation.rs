@@ -20,6 +20,8 @@ pub enum Operation {
     Exp(NodeIdentifier),
     Sqrt(NodeIdentifier),
     InvSqrt(NodeIdentifier),
+    Sin(NodeIdentifier),
+    Cos(NodeIdentifier),
 
     Equal(NodeIdentifier, NodeIdentifier),
     NotEqual(NodeIdentifier, NodeIdentifier),
@@ -124,7 +126,9 @@ impl Hash for Operation {
             | Self::ZerosLike(a)
             | Self::Neg(a)
             | Self::Sqrt(a)
-            | Self::InvSqrt(a) => {
+            | Self::InvSqrt(a)
+            | Self::Sin(a)
+            | Self::Cos(a) => {
                 a.hash(state);
             }
             Self::Select {

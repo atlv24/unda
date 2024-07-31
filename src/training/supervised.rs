@@ -86,6 +86,7 @@ impl TrainingHistory {
 }
 
 impl<U, O: Optimizer<U>> SupervisedTrainer<U, O> {
+    // TODO: WILL FAIL NEED PROPR GRAPH MERGING
     pub fn new(model: SupervisedModel, optimizer: O, client: &PjRtClient) -> Result<Self> {
         let mut full_pass_context = model.network.clone();
 
@@ -97,7 +98,7 @@ impl<U, O: Optimizer<U>> SupervisedTrainer<U, O> {
         full_pass_context
             .find_and_replace_params(&[("outputs", &model.outputs), ("targets", &model.targets)])?;
 
-        //Gradient computation: diff loss of eval_context wrt all params
+        // Gradient computation: diff loss of eval_context wrt all params
         let mut grads = Vec::new();
         for i in 0..model.n_params {
             grads.push(full_pass_context.diff(loss_update, model.params[i])?);

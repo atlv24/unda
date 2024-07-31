@@ -255,6 +255,21 @@ impl Context {
                             dependent_pullbacks.push(next_pullback);
                         }
 
+                        Operation::Sin(a) => {
+                            let next_pullback = self.diff(output, dependent_node)?;
+                            let cos = self.cos(a)?;
+                            let next_pullback = self.mul(cos, next_pullback)?;
+                            dependent_pullbacks.push(next_pullback);
+                        }
+
+                        Operation::Cos(a) => {
+                            let next_pullback = self.diff(output, dependent_node)?;
+                            let neg_sin = self.sin(a)?;
+                            let neg_sin = self.neg(neg_sin);
+                            let next_pullback = self.mul(neg_sin, next_pullback)?;
+                            dependent_pullbacks.push(next_pullback);
+                        }
+
                         Operation::Neg(_) => {
                             let next_pullback = self.diff(output, dependent_node)?;
                             dependent_pullbacks.push(self.neg(next_pullback));

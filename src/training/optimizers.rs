@@ -1,10 +1,11 @@
-use xla::Literal;
+use xla::{ElementType, Literal};
 
 use crate::graph::context::Result;
+use crate::graph::ContextError;
 use crate::graph::{Context, NodeIdentifier};
-use crate::graph::{ContextError};
 
 pub trait Optimizer<U> {
+    // The Context should take parameters, gradients, and state in that order
     fn get_step(&self) -> &Context;
     fn n_params(&self) -> usize;
     fn state_size(&self) -> usize;
@@ -16,6 +17,83 @@ pub trait Optimizer<U> {
     fn get_user_params(&self) -> U;
     fn new(user_params: U, model_params: Vec<NodeIdentifier>, model: &Context) -> Self;
     fn init_state(&self) -> Vec<Literal>;
+}
+
+pub enum LearningRateSchedule {
+    Constant(f32),
+    ExpDecay {
+        init_lr: f32,
+        decay_every: usize,
+        coefficient: f32,
+    },
+    CosineAnneal {
+        init_lr: f32,
+        max_lr: f32,
+        n_steps_to_peak: usize,
+    },
+    Then {
+        schedule_1: Box<LearningRateSchedule>,
+        n_steps: usize,
+        schedule_2: Box<LearningRateSchedule>,
+    },
+}
+
+impl LearningRateSchedule {
+    // TODO: WILL FAIL NEED PROPR GRAPH MERGING
+    pub fn build_context(&self) -> Result<(NodeIdentifier, Context, NodeIdentifier)> {
+        let mut scheduler = Context::new();
+        let iteration = scheduler.parameter("iteration", [], ElementType::U32)?;
+
+        match self {
+            &Self::Constant(lr) => {
+                let lr_node = scheduler.scalar(lr, ElementType::F32)?;
+                Ok((iteration, scheduler, lr_node))
+            }
+            &Self::ExpDecay {
+                init_lr,
+                decay_every,
+                coefficient,
+            } => {
+                let dec_ev_node = scheduler.scalar(decay_every as u32, ElementType::U32)?;
+                let coeff_node = scheduler.scalar(coefficient, ElementType::F32)?;
+                let init_node = scheduler.scalar(init_lr, ElementType::F32)?;
+                let iter_div = scheduler.div(iteration, dec_ev_node)?;
+                let iter_div_fp = scheduler.type_cast(iter_div, ElementType::F32);
+                let decay = scheduler.pow(coeff_node, iter_div_fp)?;
+                let lr_node = scheduler.mul(init_node, decay)?;
+                Ok((iteration, scheduler, lr_node))
+            }
+            &Self::CosineAnneal {
+                init_lr,
+                max_lr,
+                n_steps_to_peak,
+            } => {
+                let steps_node =
+                    scheduler.scalar(2.0 * (n_steps_to_peak as f32) / 3.14159, ElementType::F32)?;
+                let max_node = scheduler.scalar(max_lr, ElementType::F32)?;
+                let init_node = scheduler.scalar(init_lr, ElementType::F32)?;
+                let iter_fp = scheduler.type_cast(iteration, ElementType::F32);
+                let iter_div = scheduler.div(iter_fp, steps_node)?;
+                let cos_factor = scheduler.cos(iter_div)?;
+                let to_add = scheduler.mul(cos_factor, max_node)?;
+                let lr_node = scheduler.add(init_node, to_add)?;
+                Ok((iteration, scheduler, lr_node))
+            }
+            &Self::Then {
+                schedule_1,
+                n_steps,
+                schedule_2,
+            } => {
+                let (inp_1, mut context_1, lr_1) = schedule_1.build_context()?;
+                let (inp_2, context_2, lr_2) = schedule_2.build_context()?;
+                let lr_2 = context_1.merge_graphs(&context_2, &[lr_2])?[0];
+                let threshold = context_1.scalar(n_steps as u32, ElementType::U32)?;
+                let pred = context_1.ge(inp_1, threshold)?;
+                let final_lr = context_1.select(pred, lr_2, lr_1)?;
+                Ok((inp_1, context_1, final_lr))
+            }
+        }
+    }
 }
 
 pub struct ChainedOptimizer<U> {
@@ -37,6 +115,9 @@ pub fn chain<U1, U2, O1: Optimizer<U1>, O2: Optimizer<U2>>(
     opt1: O1,
     opt2: O2,
 ) -> Result<ChainedOptimizer<(U1, U2)>> {
+    let old_params1 = opt1.get_old_params().clone();
+    let old_params2 = opt2.get_old_params().clone();
+
     // is it necessary to clone here???
     let mut step = opt1.get_step().clone();
     step.merge_graphs(opt2.get_step(), &[])?;
@@ -53,6 +134,7 @@ pub fn chain<U1, U2, O1: Optimizer<U1>, O2: Optimizer<U2>>(
         user_params: (opt1.get_user_params(), opt2.get_user_params()),
     })
 }
+
 //*/
 pub struct SGD {
     step: Context,
@@ -108,6 +190,16 @@ impl Optimizer<f32> for SGD {
             for (i, node_id) in model_params.iter().enumerate() {
                 let model_param = &model.nodes[*node_id];
                 let old_param = step.parameter("", model_param.shape.clone(), model_param.dtype)?;
+                let grad = step.parameter("", model_param.shape.clone(), model_param.dtype)?;
+                let mul = step.mul(lr, grad)?;
+                let new_param = step.sub(old_param, mul)?;
+                old_params.push(old_param);
+                grads.push(grad);
+                new_params.push(new_param);
+            }
+            for (i, node_id) in model_params.iter().enumerate() {
+                let model_param = &model.nodes[*node_id];
+                let old_param = old_params[i];
                 let grad = step.parameter("", model_param.shape.clone(), model_param.dtype)?;
                 let mul = step.mul(lr, grad)?;
                 let new_param = step.sub(old_param, mul)?;
@@ -194,9 +286,9 @@ impl Optimizer<f32> for BatchNormOptimizer {
                 step.parameter("", model.nodes[mu].shape.clone(), model.nodes[mu].dtype)?;
             // grad_mu and grad_sigma are actually the same as x here!
             // they are treated as gradients for the sake of API harmonization
-            let grad_mu = step.parameter("", model.nodes[x].shape.clone(), model.nodes[x].dtype)?;
             let old_sigma =
                 step.parameter("", model.nodes[mu].shape.clone(), model.nodes[mu].dtype)?;
+            let grad_mu = step.parameter("", model.nodes[x].shape.clone(), model.nodes[x].dtype)?;
             let grad_sigma =
                 step.parameter("", model.nodes[x].shape.clone(), model.nodes[x].dtype)?;
             let old_params = vec![old_mu, old_sigma];
@@ -235,6 +327,6 @@ impl Optimizer<f32> for BatchNormOptimizer {
         build().expect("Failed to new Batch Normalization optimizer")
     }
     fn init_state(&self) -> Vec<Literal> {
-        return Vec::new()
+        return Vec::new();
     }
 }

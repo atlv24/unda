@@ -321,6 +321,30 @@ impl Context {
                         }
                     }
 
+                    Operation::Sin(a) => {
+                        if unda_xla_map.contains_key(&a)
+                            && xla_op_slotmap.contains_key(unda_xla_map[&a])
+                        {
+                            let xla_op = xla_op_slotmap[unda_xla_map[&a]].sin()?;
+                            let xla_id = xla_op_slotmap.insert(xla_op);
+                            unda_xla_map.insert(*dependent_op, xla_id);
+                            unda_op_queue.push_back(*dependent_op);
+                            covered_ops.insert(*dependent_op);
+                        }
+                    }
+
+                    Operation::Cos(a) => {
+                        if unda_xla_map.contains_key(&a)
+                            && xla_op_slotmap.contains_key(unda_xla_map[&a])
+                        {
+                            let xla_op = xla_op_slotmap[unda_xla_map[&a]].cos()?;
+                            let xla_id = xla_op_slotmap.insert(xla_op);
+                            unda_xla_map.insert(*dependent_op, xla_id);
+                            unda_op_queue.push_back(*dependent_op);
+                            covered_ops.insert(*dependent_op);
+                        }
+                    }
+
                     Operation::Equal(a, b) => {
                         if unda_xla_map.contains_key(&a)
                             && unda_xla_map.contains_key(&b)

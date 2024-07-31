@@ -128,6 +128,8 @@ impl Context {
             Operation::Log(a) => format!("Log ({})", self.to_string(a)),
             Operation::Sqrt(a) => format!("Sqrt ({})", self.to_string(a)),
             Operation::InvSqrt(a) => format!("InvSqrt ({})", self.to_string(a)),
+            Operation::Sin(a) => format!("Sin ({})", self.to_string(a)),
+            Operation::Cos(a) => format!("Cos ({})", self.to_string(a)),
             Operation::Transpose(a, b) => format!("Transpose: ({}) ({:?})", self.to_string(a), b),
             Operation::RngUniform(a, b, shape) => format!(
                 "RngUniform: ({}) ({}) ({})",

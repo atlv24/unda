@@ -1,5 +1,5 @@
 use smallvec::SmallVec;
-use std::cmp::Ordering::{Less, Greater, Equal};
+use std::cmp::Ordering::{Equal, Greater, Less};
 
 use self::dtypes::*;
 
@@ -126,7 +126,36 @@ impl Context {
         Ok(node_id)
     }
 
-    pub fn rng_uniform(&mut self, min: NodeIdentifier, max: NodeIdentifier, shape: &[u32]) -> Result<NodeIdentifier> {
+    pub fn sin(&mut self, a: NodeIdentifier) -> Result<NodeIdentifier> {
+        let node = Node {
+            callsite: callsite!(1),
+            shape: self.nodes[a].shape.clone(),
+            operation: Operation::Sin(a),
+            dtype: self.nodes[a].dtype,
+        };
+        let node_id = self.nodes.insert(node);
+        self.dependent_nodes.entry(a).or_default().push(node_id);
+        Ok(node_id)
+    }
+
+    pub fn cos(&mut self, a: NodeIdentifier) -> Result<NodeIdentifier> {
+        let node = Node {
+            callsite: callsite!(1),
+            shape: self.nodes[a].shape.clone(),
+            operation: Operation::Cos(a),
+            dtype: self.nodes[a].dtype,
+        };
+        let node_id = self.nodes.insert(node);
+        self.dependent_nodes.entry(a).or_default().push(node_id);
+        Ok(node_id)
+    }
+
+    pub fn rng_uniform(
+        &mut self,
+        min: NodeIdentifier,
+        max: NodeIdentifier,
+        shape: &[u32],
+    ) -> Result<NodeIdentifier> {
         if self.nodes[min].dtype != self.nodes[max].dtype {
             Err(ContextError::IncompatibleOperandTypes(
                 self.nodes[min].dtype,
@@ -149,7 +178,12 @@ impl Context {
         }
     }
 
-    pub fn rng_normal(&mut self, mu: NodeIdentifier, sigma: NodeIdentifier, shape: &[u32]) -> Result<NodeIdentifier> {
+    pub fn rng_normal(
+        &mut self,
+        mu: NodeIdentifier,
+        sigma: NodeIdentifier,
+        shape: &[u32],
+    ) -> Result<NodeIdentifier> {
         if self.nodes[mu].dtype != self.nodes[sigma].dtype {
             Err(ContextError::IncompatibleOperandTypes(
                 self.nodes[mu].dtype,
@@ -237,7 +271,6 @@ impl Context {
                 }
                 Ok(add_node)
             }
-
         }
     }
 
@@ -890,10 +923,7 @@ impl Context {
             operation: Operation::ReduceArgmax { node: a, dim },
             dtype: xla::ElementType::S64,
         });
-        self.dependent_nodes
-            .entry(a)
-            .or_default()
-            .push(node_id);
+        self.dependent_nodes.entry(a).or_default().push(node_id);
         self.maybe_keepdims(node_id, dim, keepdims)
     }
 
@@ -929,5 +959,4 @@ impl Context {
             .push(node_id);
         Ok(node_id)
     }
-
 }

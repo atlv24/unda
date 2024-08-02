@@ -36,7 +36,7 @@ pub struct SupervisedModel {
     // executes the network and gradient metrics
     pub(crate) evaluation_computation: xla::XlaComputation,
     // executes the network and gradient metrics and returns derivatives of the parameters
-    pub(crate) gradient_computation: xla::XlaComputation,
+    pub(crate) gradient_context: Context,
 }
 
 impl SupervisedModel {
@@ -73,15 +73,13 @@ impl SupervisedModel {
 
         let evaluation_computation =
             eval_context.build("evaluation_computation", vec![loss_update])?;
-        let mut grad_context = eval_context.clone();
+        let mut gradient_context = eval_context.clone();
 
         //Gradient computation: diff loss of eval_context wrt all params
         let mut grads = Vec::new();
         for i in 0..n_params {
-            grads.push(grad_context.diff(loss_update, params[i])?);
+            grads.push(gradient_context.diff(loss_update, params[i])?);
         }
-
-        let gradient_computation = grad_context.build("gradient_computation", grads)?;
 
         Ok(Self {
             n_params,
@@ -100,7 +98,7 @@ impl SupervisedModel {
             auxiliary_metrics,
             inference_computation,
             evaluation_computation,
-            gradient_computation,
+            gradient_context,
         })
     }
 

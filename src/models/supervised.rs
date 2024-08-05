@@ -13,7 +13,7 @@ pub struct SupervisedModel<
     pub(crate) network: Context,
     // wraps the node identifiers for the parameters of the network
     // will be buffers at execution
-    pub(crate) params: [NodeIdentifier; P],
+    pub(crate) params: [NodeIdentifier; P + O],
     // list of input nodes
     // will be literals not buffers at executation
     pub(crate) inputs: [NodeIdentifier; I],

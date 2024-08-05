@@ -154,109 +154,90 @@ impl Context {
         Ok(new_remaps)
     }
 
-    pub fn find_and_replace_params(&mut self, param_reps: &[(&str, &[NodeIdentifier])]) -> Result<()> {
-        for (param_name, rep_with) in param_reps {
-            let params_with_name: Vec<NodeIdentifier> = self.nodes.clone().into_iter().filter(|(_, node)| {
-                match node.operation.clone() {
-                    Operation::Parameter(name) => name.contains(param_name),
-                    _ => false
-                }
-            }).map(|(id, _)| id).collect();
+    pub fn find_and_replace_params(&mut self, param_reps: &[(NodeIdentifier, NodeIdentifier)]) -> Result<()> {
+        for (param, rep_with) in param_reps {
+            let param_node = &self.nodes[*param];
+            let rep_with_node = &self.nodes[*rep_with];
 
-            if params_with_name.len() != rep_with.len() {
-                return Err(super::ContextError::IncorrectOutputSizeError(rep_with.len(), params_with_name.len()));
+            if param_node.shape != rep_with_node.shape || param_node.dtype != rep_with_node.dtype {
+                return Err(super::ContextError::InvalidFuseTargetsError(param_node.dtype, rep_with_node.dtype))
+            }
+            self.nodes[*param] = self.nodes[*rep_with].clone();
+
+            let param_idx = self.parameters.iter().enumerate().find(|(_, node)| node == &param);
+            if let Some((id, _)) = param_idx {
+                self.parameters.remove(id);
             }
 
-            for i in 0..params_with_name.len() {
-                let param_node = &self.nodes[params_with_name[i]];
-                let rep_with_node = &self.nodes[rep_with[i]];
-
-                if param_node.shape != rep_with_node.shape || param_node.dtype != rep_with_node.dtype {
-                    return Err(super::ContextError::InvalidFuseTargetsError(param_node.dtype, rep_with_node.dtype))
+            //Add param nodeid to dependent nodes of new node's operation
+            match self.nodes[*param].operation.clone() {
+                Operation::Add(a, b) 
+                    | Operation::Pow(a, b)
+                    | Operation::Sub(a, b)
+                    | Operation::Mul(a, b)
+                    | Operation::MatMul(a, b)
+                    | Operation::Div(a, b)
+                    | Operation::GreaterThanEq(a, b)
+                    | Operation::GreaterThan(a, b)
+                    | Operation::Equal(a, b)
+                    | Operation::NotEqual(a, b)
+                    | Operation::LessThan(a, b)
+                    | Operation::LessThanEq(a, b)
+                    | Operation::RngUniform(a, b, _)
+                    | Operation::RngNormal(a, b, _) => {
+                        self.dependent_nodes.entry(a).or_insert_with(Vec::new).push(*param);
+                        self.dependent_nodes.entry(b).or_insert_with(Vec::new).push(*param);
+                    }
+                Operation::StopGradient(a)
+                    | Operation::Neg(a)
+                    | Operation::Log(a)
+                    | Operation::Exp(a)
+                    | Operation::ZerosLike(a)
+                    | Operation::OneHot(a)
+                    | Operation::TypeCast(a, _)
+                    | Operation::Reshape(a)
+                    | Operation::Transpose(a, _) => {
+                        self.dependent_nodes.entry(a).or_insert_with(Vec::new).push(*param);
+                    }
+                Operation::Select {
+                    pred,
+                    on_false,
+                    on_true,
+                } => {
+                    self.dependent_nodes.entry(pred).or_insert_with(Vec::new).push(*param);
+                    self.dependent_nodes.entry(on_true).or_insert_with(Vec::new).push(*param);
+                    self.dependent_nodes.entry(on_false).or_insert_with(Vec::new).push(*param);
                 }
-                self.nodes[params_with_name[i]] = self.nodes[rep_with[i]].clone();
-                
-                let param_idx = self.parameters.iter().enumerate().find(|(_, node)| node == &&params_with_name[i]);
-                if let Some((id, _)) = param_idx {
-                    self.parameters.remove(id);
+                Operation::ReduceMax { node, dim: _ } => {
+                    self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(*param);
                 }
-
-                /*let node_ext = self.dependent_nodes.get(&rep_with[i]).unwrap_or(&vec![]).clone();
-                if let Some(node_deps) = self.dependent_nodes.get_mut(&params_with_name[i]) {
-                    node_deps.extend(node_ext.iter())
-                }*/
-
-                //Add param nodeid to dependent nodes of new node's operation
-                match self.nodes[params_with_name[i]].operation.clone() {
-                    Operation::Add(a, b) 
-                        | Operation::Pow(a, b)
-                        | Operation::Sub(a, b)
-                        | Operation::Mul(a, b)
-                        | Operation::MatMul(a, b)
-                        | Operation::Div(a, b)
-                        | Operation::GreaterThanEq(a, b)
-                        | Operation::GreaterThan(a, b)
-                        | Operation::Equal(a, b)
-                        | Operation::NotEqual(a, b)
-                        | Operation::LessThan(a, b)
-                        | Operation::LessThanEq(a, b)
-                        | Operation::RngUniform(a, b, _)
-                        | Operation::RngNormal(a, b, _) => {
-                            self.dependent_nodes.entry(a).or_insert_with(Vec::new).push(params_with_name[i]);
-                            self.dependent_nodes.entry(b).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    Operation::StopGradient(a)
-                        | Operation::Neg(a)
-                        | Operation::Log(a)
-                        | Operation::Exp(a)
-                        | Operation::ZerosLike(a)
-                        | Operation::OneHot(a)
-                        | Operation::TypeCast(a, _)
-                        | Operation::Reshape(a)
-                        | Operation::Transpose(a, _) => {
-                            self.dependent_nodes.entry(a).or_insert_with(Vec::new).push(params_with_name[i]);
-                        }
-                    Operation::Select {
-                        pred,
-                        on_false,
-                        on_true,
-                    } => {
-                        self.dependent_nodes.entry(pred).or_insert_with(Vec::new).push(params_with_name[i]);
-                        self.dependent_nodes.entry(on_true).or_insert_with(Vec::new).push(params_with_name[i]);
-                        self.dependent_nodes.entry(on_false).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    Operation::ReduceMax { node, dim: _ } => {
-                        self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    Operation::ReduceArgmax {
-                        node,
-                        dim: _,
-                    } => {
-                        self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    Operation::ReduceSum { node, dim: _ } => {
-                        self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    Operation::ReduceMean { node, dim: _ } => {
-                        self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    Operation::SliceInDim {
-                        node,
-                        start: _,
-                        stop: _,
-                        stride: _,
-                        dim: _,
-                    } => {
-                        self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    Operation::TileInDim { node, n_tiles: _, dim: _ } => {
-                        self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    _ => {} //Constants, parameters, don't need nodeid replacement
+                Operation::ReduceArgmax {
+                    node,
+                    dim: _,
+                } => {
+                    self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(*param);
                 }
+                Operation::ReduceSum { node, dim: _ } => {
+                    self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(*param);
+                }
+                Operation::ReduceMean { node, dim: _ } => {
+                    self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(*param);
+                }
+                Operation::SliceInDim {
+                    node,
+                    start: _,
+                    stop: _,
+                    stride: _,
+                    dim: _,
+                } => {
+                    self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(*param);
+                }
+                Operation::TileInDim { node, n_tiles: _, dim: _ } => {
+                    self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(*param);
+                }
+                _ => {} //Constants, parameters, don't need nodeid replacement
             }
         }
-
         Ok(())
     }
 

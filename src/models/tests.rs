@@ -231,13 +231,12 @@ mod tests {
         let two = g.scalar(2, xla::ElementType::F32).expect("2 2");
         let square = g.pow(y, two).expect("y^2");
 
-        let output = f.merge_graphs(&g, &[square]).expect("Merge f and g");
-        let name = "y";
-        f.find_and_replace_params(&[(name, &[mult])]).expect("Fuse mult to y");
+        let output = f.merge_graphs(&g, &[two, square]).expect("Merge f and g");
+        f.find_and_replace_params(&[(output[0], mult)]).expect("Fuse mult to y");
 
         let client = xla::PjRtClient::cpu().expect("Client");
         let name = "test";
-        let exec = f.compile(&name, [output[0]], &client).expect("executable");
+        let exec = f.compile(&name, [output[1]], &client).expect("executable");
 
         let x_in = xla::Literal::scalar(2f32);
         let device_result = exec.execute::<Literal>(&[x_in]).expect("execute");

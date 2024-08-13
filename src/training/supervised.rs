@@ -94,9 +94,9 @@ impl<U, O: Optimizer<U>> SupervisedTrainer<U, O> {
         //compute_metrics will take in outputs and targets as inputs
         //outputs is a direct output of inference context
         //targets are supplied in constructor
-        let loss_update = full_pass_context.merge_graphs(&model.compute_metrics, &[model.loss])?[0];
+        let loss_update = full_pass_context.combine_graphs(&model.compute_metrics, &[model.loss])?[0];
         full_pass_context
-            .find_and_replace_params(&[("outputs", &model.outputs), ("targets", &model.targets)])?;
+            .fuse_nodes(&[("outputs", &model.outputs), ("targets", &model.targets)])?;
 
         // Gradient computation: diff loss of eval_context wrt all params
         let mut grads = Vec::new();

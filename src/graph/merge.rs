@@ -7,7 +7,7 @@ use super::Result;
 use super::Context;
 
 impl Context {
-    pub fn merge_graphs(
+    pub fn combine_graphs(
         &mut self,
         other: &Context,
         desired_remaps: &[NodeIdentifier],
@@ -23,7 +23,8 @@ impl Context {
                     self.nodes[new_id].operation = Operation::Add(old_to_new[&a], old_to_new[&b])
                 }
                 Operation::RngUniform(a, b, shape) => {
-                    self.nodes[new_id].operation = Operation::RngUniform(old_to_new[&a], old_to_new[&b], shape)
+                    self.nodes[new_id].operation =
+                        Operation::RngUniform(old_to_new[&a], old_to_new[&b], shape)
                 }
                 Operation::Pow(a, b) => {
                     self.nodes[new_id].operation = Operation::Pow(old_to_new[&a], old_to_new[&b])
@@ -41,35 +42,34 @@ impl Context {
                     self.nodes[new_id].operation = Operation::Div(old_to_new[&a], old_to_new[&b])
                 }
                 Operation::GreaterThan(a, b) => {
-                    self.nodes[new_id].operation = Operation::GreaterThan(old_to_new[&a], old_to_new[&b])
+                    self.nodes[new_id].operation =
+                        Operation::GreaterThan(old_to_new[&a], old_to_new[&b])
                 }
                 Operation::GreaterThanEq(a, b) => {
-                    self.nodes[new_id].operation = Operation::GreaterThanEq(old_to_new[&a], old_to_new[&b])
+                    self.nodes[new_id].operation =
+                        Operation::GreaterThanEq(old_to_new[&a], old_to_new[&b])
                 }
                 Operation::Equal(a, b) => {
                     self.nodes[new_id].operation = Operation::Equal(old_to_new[&a], old_to_new[&b])
                 }
                 Operation::NotEqual(a, b) => {
-                    self.nodes[new_id].operation = Operation::NotEqual(old_to_new[&a], old_to_new[&b])
+                    self.nodes[new_id].operation =
+                        Operation::NotEqual(old_to_new[&a], old_to_new[&b])
                 }
                 Operation::LessThan(a, b) => {
-                    self.nodes[new_id].operation = Operation::LessThan(old_to_new[&a], old_to_new[&b])
+                    self.nodes[new_id].operation =
+                        Operation::LessThan(old_to_new[&a], old_to_new[&b])
                 }
                 Operation::LessThanEq(a, b) => {
-                    self.nodes[new_id].operation = Operation::LessThanEq(old_to_new[&a], old_to_new[&b])
+                    self.nodes[new_id].operation =
+                        Operation::LessThanEq(old_to_new[&a], old_to_new[&b])
                 }
                 Operation::StopGradient(a) => {
                     self.nodes[new_id].operation = Operation::StopGradient(old_to_new[&a])
                 }
-                Operation::Neg(a) => {
-                    self.nodes[new_id].operation = Operation::Neg(old_to_new[&a])
-                }
-                Operation::Exp(a) => {
-                    self.nodes[new_id].operation = Operation::Exp(old_to_new[&a])
-                }
-                Operation::Log(a) => {
-                    self.nodes[new_id].operation = Operation::Log(old_to_new[&a])
-                }
+                Operation::Neg(a) => self.nodes[new_id].operation = Operation::Neg(old_to_new[&a]),
+                Operation::Exp(a) => self.nodes[new_id].operation = Operation::Exp(old_to_new[&a]),
+                Operation::Log(a) => self.nodes[new_id].operation = Operation::Log(old_to_new[&a]),
                 Operation::ZerosLike(a) => {
                     self.nodes[new_id].operation = Operation::ZerosLike(old_to_new[&a])
                 }
@@ -87,22 +87,35 @@ impl Context {
                     on_false,
                     on_true,
                 } => {
-                    self.nodes[new_id].operation = Operation::Select { pred: old_to_new[&pred], on_true: old_to_new[&on_true], on_false: old_to_new[&on_false] }
+                    self.nodes[new_id].operation = Operation::Select {
+                        pred: old_to_new[&pred],
+                        on_true: old_to_new[&on_true],
+                        on_false: old_to_new[&on_false],
+                    }
                 }
                 Operation::ReduceMax { node, dim } => {
-                    self.nodes[new_id].operation = Operation::ReduceMax { node: old_to_new[&node], dim }
+                    self.nodes[new_id].operation = Operation::ReduceMax {
+                        node: old_to_new[&node],
+                        dim,
+                    }
                 }
-                Operation::ReduceArgmax {
-                    node,
-                    dim,
-                } => {
-                    self.nodes[new_id].operation = Operation::ReduceArgmax { node: old_to_new[&node], dim }
+                Operation::ReduceArgmax { node, dim } => {
+                    self.nodes[new_id].operation = Operation::ReduceArgmax {
+                        node: old_to_new[&node],
+                        dim,
+                    }
                 }
                 Operation::ReduceSum { node, dim } => {
-                    self.nodes[new_id].operation = Operation::ReduceSum { node: old_to_new[&node], dim }
+                    self.nodes[new_id].operation = Operation::ReduceSum {
+                        node: old_to_new[&node],
+                        dim,
+                    }
                 }
                 Operation::ReduceMean { node, dim } => {
-                    self.nodes[new_id].operation = Operation::ReduceMean { node: old_to_new[&node], dim }
+                    self.nodes[new_id].operation = Operation::ReduceMean {
+                        node: old_to_new[&node],
+                        dim,
+                    }
                 }
                 Operation::Transpose(a, dim) => {
                     self.nodes[new_id].operation = Operation::Transpose(old_to_new[&a], dim)
@@ -114,13 +127,24 @@ impl Context {
                     stride,
                     dim,
                 } => {
-                    self.nodes[new_id].operation = Operation::SliceInDim { node: old_to_new[&node], start, stop, stride, dim }
+                    self.nodes[new_id].operation = Operation::SliceInDim {
+                        node: old_to_new[&node],
+                        start,
+                        stop,
+                        stride,
+                        dim,
+                    }
                 }
                 Operation::TileInDim { node, n_tiles, dim } => {
-                    self.nodes[new_id].operation = Operation::TileInDim { node: old_to_new[&node], n_tiles, dim }
+                    self.nodes[new_id].operation = Operation::TileInDim {
+                        node: old_to_new[&node],
+                        n_tiles,
+                        dim,
+                    }
                 }
                 Operation::RngNormal(a, b, shape) => {
-                    self.nodes[new_id].operation = Operation::RngNormal(old_to_new[&a], old_to_new[&b], shape)
+                    self.nodes[new_id].operation =
+                        Operation::RngNormal(old_to_new[&a], old_to_new[&b], shape)
                 }
                 _ => {} //Constants, parameters, don't need nodeid replacement
             }
@@ -159,119 +183,134 @@ impl Context {
         Ok(new_remaps)
     }
 
-    pub fn find_and_replace_params(
-        &mut self,
-        param_reps: &[(&str, &[NodeIdentifier])],
-    ) -> Result<()> {
-        for (param_name, rep_with) in param_reps {
-            let params_with_name: Vec<NodeIdentifier> = self
-                .nodes
-                .clone()
-                .into_iter()
-                .filter(|(_, node)| match node.operation.clone() {
-                    Operation::Parameter(name) => name.contains(param_name),
-                    _ => false,
-                })
-                .map(|(id, _)| id)
-                .collect();
+    pub fn fuse_nodes(&mut self, param_reps: &[(NodeIdentifier, NodeIdentifier)]) -> Result<()> {
+        for (param, rep_with) in param_reps {
+            let param_node = &self.nodes[*param];
+            let rep_with_node = &self.nodes[*rep_with];
 
-            if params_with_name.len() != rep_with.len() {
-                return Err(super::ContextError::IncorrectOutputSizeError(
-                    rep_with.len(),
-                    params_with_name.len(),
+            if param_node.shape != rep_with_node.shape || param_node.dtype != rep_with_node.dtype {
+                return Err(super::ContextError::InvalidFuseTargetsError(
+                    param_node.dtype,
+                    rep_with_node.dtype,
                 ));
             }
+            self.nodes[*param] = self.nodes[*rep_with].clone();
 
-            for i in 0..params_with_name.len() {
-                let param_node = &self.nodes[params_with_name[i]];
-                let rep_with_node = &self.nodes[rep_with[i]];
+            let param_idx = self
+                .parameters
+                .iter()
+                .enumerate()
+                .find(|(_, node)| node == &param);
+            if let Some((id, _)) = param_idx {
+                self.parameters.remove(id);
+            }
 
-                if param_node.shape != rep_with_node.shape || param_node.dtype != rep_with_node.dtype {
-                    return Err(super::ContextError::InvalidFuseTargetsError(param_node.dtype, rep_with_node.dtype))
+            //Add param nodeid to dependent nodes of new node's operation
+            match self.nodes[*param].operation.clone() {
+                Operation::Add(a, b)
+                | Operation::Pow(a, b)
+                | Operation::Sub(a, b)
+                | Operation::Mul(a, b)
+                | Operation::MatMul(a, b)
+                | Operation::Div(a, b)
+                | Operation::GreaterThanEq(a, b)
+                | Operation::GreaterThan(a, b)
+                | Operation::Equal(a, b)
+                | Operation::NotEqual(a, b)
+                | Operation::LessThan(a, b)
+                | Operation::LessThanEq(a, b)
+                | Operation::RngUniform(a, b, _)
+                | Operation::RngNormal(a, b, _) => {
+                    self.dependent_nodes
+                        .entry(a)
+                        .or_insert_with(Vec::new)
+                        .push(*param);
+                    self.dependent_nodes
+                        .entry(b)
+                        .or_insert_with(Vec::new)
+                        .push(*param);
                 }
-                self.nodes[params_with_name[i]] = self.nodes[rep_with[i]].clone();
-
-                let param_idx = self.parameters.iter().enumerate().find(|(_, node)| node == &&params_with_name[i]);
-                if let Some((id, _)) = param_idx {
-                    self.parameters.remove(id);
+                Operation::StopGradient(a)
+                | Operation::Neg(a)
+                | Operation::Log(a)
+                | Operation::Exp(a)
+                | Operation::ZerosLike(a)
+                | Operation::OneHot(a)
+                | Operation::TypeCast(a, _)
+                | Operation::Reshape(a)
+                | Operation::Transpose(a, _) => {
+                    self.dependent_nodes
+                        .entry(a)
+                        .or_insert_with(Vec::new)
+                        .push(*param);
                 }
-
-                /*let node_ext = self.dependent_nodes.get(&rep_with[i]).unwrap_or(&vec![]).clone();
-                if let Some(node_deps) = self.dependent_nodes.get_mut(&params_with_name[i]) {
-                    node_deps.extend(node_ext.iter())
-                }*/
-
-                //Add param nodeid to dependent nodes of new node's operation
-                match self.nodes[params_with_name[i]].operation.clone() {
-                    Operation::Add(a, b)
-                        | Operation::Pow(a, b)
-                        | Operation::Sub(a, b)
-                        | Operation::Mul(a, b)
-                        | Operation::MatMul(a, b)
-                        | Operation::Div(a, b)
-                        | Operation::GreaterThanEq(a, b)
-                        | Operation::GreaterThan(a, b)
-                        | Operation::Equal(a, b)
-                        | Operation::NotEqual(a, b)
-                        | Operation::LessThan(a, b)
-                        | Operation::LessThanEq(a, b)
-                        | Operation::RngUniform(a, b, _)
-                        | Operation::RngNormal(a, b, _) => {
-                            self.dependent_nodes.entry(a).or_insert_with(Vec::new).push(params_with_name[i]);
-                            self.dependent_nodes.entry(b).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    Operation::StopGradient(a)
-                        | Operation::Neg(a)
-                        | Operation::Log(a)
-                        | Operation::Exp(a)
-                        | Operation::ZerosLike(a)
-                        | Operation::OneHot(a)
-                        | Operation::TypeCast(a, _)
-                        | Operation::Reshape(a)
-                        | Operation::Transpose(a, _) => {
-                            self.dependent_nodes.entry(a).or_insert_with(Vec::new).push(params_with_name[i]);
-                        }
-                    Operation::Select {
-                        pred,
-                        on_false,
-                        on_true,
-                    } => {
-                        self.dependent_nodes.entry(pred).or_insert_with(Vec::new).push(params_with_name[i]);
-                        self.dependent_nodes.entry(on_true).or_insert_with(Vec::new).push(params_with_name[i]);
-                        self.dependent_nodes.entry(on_false).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    Operation::ReduceMax { node, dim: _ } => {
-                        self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    Operation::ReduceArgmax {
-                        node,
-                        dim: _,
-                    } => {
-                        self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    Operation::ReduceSum { node, dim: _ } => {
-                        self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    Operation::ReduceMean { node, dim: _ } => {
-                        self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    Operation::SliceInDim {
-                        node,
-                        start: _,
-                        stop: _,
-                        stride: _,
-                        dim: _,
-                    } => {
-                        self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    Operation::TileInDim { node, n_tiles: _, dim: _ } => {
-                        self.dependent_nodes.entry(node).or_insert_with(Vec::new).push(params_with_name[i]);
-                    }
-                    _ => {} //Constants, parameters, don't need nodeid replacement
+                Operation::Select {
+                    pred,
+                    on_false,
+                    on_true,
+                } => {
+                    self.dependent_nodes
+                        .entry(pred)
+                        .or_insert_with(Vec::new)
+                        .push(*param);
+                    self.dependent_nodes
+                        .entry(on_true)
+                        .or_insert_with(Vec::new)
+                        .push(*param);
+                    self.dependent_nodes
+                        .entry(on_false)
+                        .or_insert_with(Vec::new)
+                        .push(*param);
                 }
+                Operation::ReduceMax { node, dim: _ } => {
+                    self.dependent_nodes
+                        .entry(node)
+                        .or_insert_with(Vec::new)
+                        .push(*param);
+                }
+                Operation::ReduceArgmax { node, dim: _ } => {
+                    self.dependent_nodes
+                        .entry(node)
+                        .or_insert_with(Vec::new)
+                        .push(*param);
+                }
+                Operation::ReduceSum { node, dim: _ } => {
+                    self.dependent_nodes
+                        .entry(node)
+                        .or_insert_with(Vec::new)
+                        .push(*param);
+                }
+                Operation::ReduceMean { node, dim: _ } => {
+                    self.dependent_nodes
+                        .entry(node)
+                        .or_insert_with(Vec::new)
+                        .push(*param);
+                }
+                Operation::SliceInDim {
+                    node,
+                    start: _,
+                    stop: _,
+                    stride: _,
+                    dim: _,
+                } => {
+                    self.dependent_nodes
+                        .entry(node)
+                        .or_insert_with(Vec::new)
+                        .push(*param);
+                }
+                Operation::TileInDim {
+                    node,
+                    n_tiles: _,
+                    dim: _,
+                } => {
+                    self.dependent_nodes
+                        .entry(node)
+                        .or_insert_with(Vec::new)
+                        .push(*param);
+                }
+                _ => {} //Constants, parameters, don't need nodeid replacement
             }
         }
-
         Ok(())
     }
 
@@ -280,5 +319,23 @@ impl Context {
         res.extend(self.constants.iter());
 
         res
+    }
+
+    pub fn compose_context(
+        &mut self,
+        other: &Context,
+        desired_remaps: Vec<NodeIdentifier>,
+        first_graph_outputs: Vec<NodeIdentifier>,
+        second_graph_inputs: Vec<NodeIdentifier>,
+    ) -> Result<Vec<NodeIdentifier>> {
+        let n_remaps = desired_remaps.len();
+        let mut desired_remaps = desired_remaps.clone();
+        desired_remaps.extend(second_graph_inputs);
+        let mut remaps = self.combine_graphs(other, &desired_remaps)?;
+        let out_remaps = remaps.drain(0..n_remaps).collect();
+        let param_reps: Vec<(NodeIdentifier, NodeIdentifier)> =
+            first_graph_outputs.into_iter().zip(remaps).collect();
+        self.fuse_nodes(&param_reps)?;
+        Ok(out_remaps)
     }
 }

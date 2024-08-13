@@ -1,8 +1,8 @@
 use xla::{ElementType, Literal};
 
 use crate::graph::context::Result;
-use crate::graph::{ContextError, Node};
 use crate::graph::{Context, NodeIdentifier};
+use crate::graph::{ContextError, Node};
 
 pub trait Optimizer<U> {
     // The Context should take parameters, gradients, and state in that order
@@ -90,14 +90,12 @@ impl LearningRateSchedule {
                     schedule_1,
                     n_steps,
                     schedule_2,
-                } => {
-                    LRSchedOffset::Then {
-                        schedule_1: Box::new(zero_offset(schedule_1.as_ref())),
-                        n_steps,
-                        schedule_2: Box::new(zero_offset(schedule_2.as_ref())),
-                        offset: 0,
-                    }
-                }
+                } => LRSchedOffset::Then {
+                    schedule_1: Box::new(zero_offset(schedule_1.as_ref())),
+                    n_steps,
+                    schedule_2: Box::new(zero_offset(schedule_2.as_ref())),
+                    offset: 0,
+                },
             }
         }
 
@@ -146,8 +144,8 @@ impl LearningRateSchedule {
         recurse(&zero_offset(self), 0)
     }
 }
+
 impl LRSchedOffset {
-    // TODO: WILL FAIL NEED PROPR GRAPH MERGING
     pub fn build_context(&self) -> Result<(NodeIdentifier, Context, NodeIdentifier)> {
         let mut scheduler = Context::new();
         let iteration = scheduler.parameter("iteration", [], ElementType::U32)?;
@@ -161,7 +159,7 @@ impl LRSchedOffset {
                 init_lr,
                 decay_every,
                 coefficient,
-                offset
+                offset,
             } => {
                 let offset_node = scheduler.scalar(offset as u32, ElementType::U32)?;
                 let iteration = scheduler.sub(iteration, offset_node)?;
@@ -178,7 +176,7 @@ impl LRSchedOffset {
                 init_lr,
                 max_lr,
                 n_steps_to_peak,
-                offset
+                offset,
             } => {
                 let offset_node = scheduler.scalar(offset as u32, ElementType::U32)?;
                 let iteration = scheduler.sub(iteration, offset_node)?;
@@ -197,11 +195,11 @@ impl LRSchedOffset {
                 schedule_1,
                 n_steps,
                 schedule_2,
-                offset
+                offset,
             } => {
                 let (inp_1, mut context_1, lr_1) = schedule_1.build_context()?;
                 let (inp_2, context_2, lr_2) = schedule_2.build_context()?;
-                let lr_2 = context_1.merge_graphs(&context_2, &[lr_2])?[0];
+                let lr_2 = context_1.combine_graphs(&context_2, &[lr_2])?[0];
                 let threshold = context_1.scalar(n_steps as u32, ElementType::U32)?;
                 let pred = context_1.ge(inp_1, threshold)?;
                 let final_lr = context_1.select(pred, lr_2, lr_1)?;
@@ -223,29 +221,32 @@ pub struct ChainedOptimizer<U> {
     pub user_params: U,
 }
 
-// WILL FAIL!
-// TODO: Need to get node identifiers into the merged context!
-//*
 pub fn chain<U1, U2, O1: Optimizer<U1>, O2: Optimizer<U2>>(
     opt1: O1,
     opt2: O2,
 ) -> Result<ChainedOptimizer<(U1, U2)>> {
-    let old_params1 = opt1.get_old_params().clone();
-    let old_params2 = opt2.get_old_params().clone();
-
-    // is it necessary to clone here???
     let mut step = opt1.get_step().clone();
-    step.merge_graphs(opt2.get_step(), &[])?;
+    let mut to_remap = opt2.get_old_params().clone();
+    to_remap.extend(opt2.get_gradients());
+    to_remap.extend(opt2.get_old_state());
+    to_remap.extend(opt2.get_new_params());
+    to_remap.extend(opt2.get_new_state());
+    let mut remapped = step.combine_graphs(opt2.get_step(), &to_remap)?;
+    let old_params2: Vec<NodeIdentifier> = remapped.drain(0..opt2.get_old_params().len()).collect();
+    let old_state2: Vec<NodeIdentifier> = remapped.drain(0..opt2.state_size()).collect();
+    let gradients2: Vec<NodeIdentifier> = remapped.drain(0..opt2.get_gradients().len()).collect();
+    let new_params2: Vec<NodeIdentifier> = remapped.drain(0..opt2.get_new_params().len()).collect();
+    let new_state2: Vec<NodeIdentifier> = remapped;
 
     Ok(ChainedOptimizer {
         step,
         n_params: opt1.n_params() + opt2.n_params(),
         state_size: opt1.state_size() + opt2.state_size(),
-        old_params: [opt1.get_old_params().clone(), opt2.get_old_params().clone()].concat(),
-        grads: [opt1.get_gradients().clone(), opt2.get_gradients().clone()].concat(),
-        new_params: [opt1.get_new_params().clone(), opt2.get_new_params().clone()].concat(),
-        old_state: [opt1.get_old_state().clone(), opt2.get_old_state().clone()].concat(),
-        new_state: [opt1.get_new_state().clone(), opt2.get_new_state().clone()].concat(),
+        old_params: [opt1.get_old_params().clone(), old_params2].concat(),
+        grads: [opt1.get_gradients().clone(), gradients2].concat(),
+        new_params: [opt1.get_new_params().clone(), new_params2].concat(),
+        old_state: [opt1.get_old_state().clone(), old_state2].concat(),
+        new_state: [opt1.get_new_state().clone(), new_state2].concat(),
         user_params: (opt1.get_user_params(), opt2.get_user_params()),
     })
 }
@@ -291,7 +292,11 @@ impl Optimizer<LearningRateSchedule> for SGD {
         self.lr_schedule
     }
     // TODO WILL FAIL NEED PROPER GRAPH MERGING
-    fn new(lr_schedule: LearningRateSchedule, model_params: Vec<NodeIdentifier>, model: &Context) -> SGD {
+    fn new(
+        lr_schedule: LearningRateSchedule,
+        model_params: Vec<NodeIdentifier>,
+        model: &Context,
+    ) -> SGD {
         let build = || {
             let (iter_node, scheduler, lr_node) = lr_schedule.offset().build_context()?;
 
@@ -320,7 +325,7 @@ impl Optimizer<LearningRateSchedule> for SGD {
             let one = step.scalar(1, ElementType::U32)?;
             let new_iter = step.add(one, old_iter)?;
 
-            let lr = step.merge_graphs(&scheduler, &[lr_node])?[0];
+            let lr = step.combine_graphs(&scheduler, &[lr_node])?[0];
 
             for i in 0..n_params {
                 let old_param = old_params[i];

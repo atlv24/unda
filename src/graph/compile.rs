@@ -23,7 +23,7 @@ impl Context {
     pub fn build(
         &mut self,
         name: &str,
-        returns: Vec<NodeIdentifier>,
+        returns: &Vec<NodeIdentifier>,
     ) -> Result<xla::XlaComputation> {
         // TODO: gate debug mode behind a feature flag
 
@@ -634,7 +634,7 @@ impl Context {
     pub fn compile(
         &mut self,
         name: &str,
-        returns: Vec<NodeIdentifier>,
+        returns: &Vec<NodeIdentifier>,
         client: &xla::PjRtClient,
     ) -> Result<xla::PjRtLoadedExecutable> {
         let comp = self.build(name, returns)?;

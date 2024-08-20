@@ -62,6 +62,8 @@ impl Context {
                     | Operation::StopGradient(a)
                     | Operation::Log(a)
                     | Operation::Exp(a)
+                    | Operation::Sin(a)
+                    | Operation::Cos(a)
                     | Operation::TypeCast(a, _)
                     | Operation::Transpose(a, _)
                     | Operation::Sqrt(a)

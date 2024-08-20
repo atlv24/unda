@@ -325,8 +325,8 @@ impl Context {
         &mut self,
         other: &Context,
         desired_remaps: Vec<NodeIdentifier>,
-        first_graph_outputs: Vec<NodeIdentifier>,
-        second_graph_inputs: Vec<NodeIdentifier>,
+        first_graph_outputs: &Vec<NodeIdentifier>,
+        second_graph_inputs: &Vec<NodeIdentifier>,
     ) -> Result<Vec<NodeIdentifier>> {
         let n_remaps = desired_remaps.len();
         let mut desired_remaps = desired_remaps.clone();
@@ -334,7 +334,7 @@ impl Context {
         let mut remaps = self.combine_graphs(other, &desired_remaps)?;
         let out_remaps = remaps.drain(0..n_remaps).collect();
         let param_reps: Vec<(NodeIdentifier, NodeIdentifier)> =
-            first_graph_outputs.into_iter().zip(remaps).collect();
+            first_graph_outputs.into_iter().zip(remaps).map(|x| (*x.0, x.1)).collect();
         self.fuse_nodes(&param_reps)?;
         Ok(out_remaps)
     }

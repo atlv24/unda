@@ -6,20 +6,21 @@ use crate::graph::{ContextError, Node};
 
 pub trait Optimizer<U> {
     // The Context should take parameters, gradients, and state in that order
-    // should return updates, new state, new parameters in that order
+    // should return new parameters, new state in that order
     fn get_step(&self) -> &Context;
     fn n_params(&self) -> usize;
     fn state_size(&self) -> usize;
-    fn get_old_params(&self) -> &Vec<NodeIdentifier>;
-    fn get_gradients(&self) -> &Vec<NodeIdentifier>;
-    fn get_new_params(&self) -> &Vec<NodeIdentifier>;
-    fn get_old_state(&self) -> &Vec<NodeIdentifier>;
-    fn get_new_state(&self) -> &Vec<NodeIdentifier>;
+    fn get_old_params(&self) -> Vec<NodeIdentifier>;
+    fn get_gradients(&self) -> Vec<NodeIdentifier>;
+    fn get_new_params(&self) -> Vec<NodeIdentifier>;
+    fn get_old_state(&self) -> Vec<NodeIdentifier>;
+    fn get_new_state(&self) -> Vec<NodeIdentifier>;
     fn get_user_params(&self) -> U;
     fn new(user_params: U, model_params: Vec<NodeIdentifier>, model: &Context) -> Self;
     fn init_state(&self) -> Vec<Literal>;
 }
 
+#[derive(Clone)]
 pub enum LearningRateSchedule {
     Constant(f32),
     ExpDecay {
@@ -86,13 +87,14 @@ impl LearningRateSchedule {
                     n_steps_to_peak,
                     offset: 0,
                 },
-                &LearningRateSchedule::Then {
+                LearningRateSchedule::Then {
                     schedule_1,
                     n_steps,
                     schedule_2,
                 } => LRSchedOffset::Then {
+                    // why clone here???
                     schedule_1: Box::new(zero_offset(schedule_1.as_ref())),
-                    n_steps,
+                    n_steps: *n_steps,
                     schedule_2: Box::new(zero_offset(schedule_2.as_ref())),
                     offset: 0,
                 },
@@ -124,7 +126,7 @@ impl LearningRateSchedule {
                     n_steps_to_peak,
                     offset: off + offset,
                 },
-                &LRSchedOffset::Then {
+                LRSchedOffset::Then {
                     schedule_1,
                     n_steps,
                     schedule_2,
@@ -134,7 +136,7 @@ impl LearningRateSchedule {
                     let offset_2 = recurse(schedule_2.as_ref(), off + offset);
                     LRSchedOffset::Then {
                         schedule_1: Box::new(offset_1),
-                        n_steps,
+                        n_steps: *n_steps,
                         schedule_2: Box::new(offset_2),
                         offset: off + offset,
                     }
@@ -191,16 +193,17 @@ impl LRSchedOffset {
                 let lr_node = scheduler.add(init_node, to_add)?;
                 Ok((iteration, scheduler, lr_node))
             }
-            &Self::Then {
+            Self::Then {
                 schedule_1,
                 n_steps,
                 schedule_2,
                 offset,
             } => {
-                let (inp_1, mut context_1, lr_1) = schedule_1.build_context()?;
-                let (inp_2, context_2, lr_2) = schedule_2.build_context()?;
+                let (inp_1, mut context_1, lr_1) = schedule_1.as_ref().build_context()?;
+                let (inp_2, context_2, lr_2) = schedule_2.as_ref().build_context()?;
                 let lr_2 = context_1.combine_graphs(&context_2, &[lr_2])?[0];
-                let threshold = context_1.scalar(n_steps as u32, ElementType::U32)?;
+                context_1.fuse_nodes(&[(inp_1, inp_2)])?;
+                let threshold = context_1.scalar((*n_steps - *offset) as u32, ElementType::U32)?;
                 let pred = context_1.ge(inp_1, threshold)?;
                 let final_lr = context_1.select(pred, lr_2, lr_1)?;
                 Ok((inp_1, context_1, final_lr))
@@ -273,23 +276,23 @@ impl Optimizer<LearningRateSchedule> for SGD {
     fn state_size(&self) -> usize {
         1
     }
-    fn get_old_params(&self) -> &Vec<NodeIdentifier> {
-        &self.old_params
+    fn get_old_params(&self) -> Vec<NodeIdentifier> {
+        self.old_params.clone()
     }
-    fn get_gradients(&self) -> &Vec<NodeIdentifier> {
-        &self.grads
+    fn get_gradients(&self) -> Vec<NodeIdentifier> {
+        self.grads.clone()
     }
-    fn get_new_params(&self) -> &Vec<NodeIdentifier> {
-        &self.new_params
+    fn get_new_params(&self) -> Vec<NodeIdentifier> {
+        self.new_params.clone()
     }
-    fn get_old_state(&self) -> &Vec<NodeIdentifier> {
-        &vec![self.old_iter]
+    fn get_old_state(&self) -> Vec<NodeIdentifier> {
+        vec![self.old_iter]
     }
-    fn get_new_state(&self) -> &Vec<NodeIdentifier> {
-        &vec![self.new_iter]
+    fn get_new_state(&self) -> Vec<NodeIdentifier> {
+        vec![self.new_iter]
     }
     fn get_user_params(&self) -> LearningRateSchedule {
-        self.lr_schedule
+        self.lr_schedule.clone()
     }
     // TODO WILL FAIL NEED PROPER GRAPH MERGING
     fn new(
@@ -373,20 +376,20 @@ impl Optimizer<f32> for BatchNormOptimizer {
     fn state_size(&self) -> usize {
         0
     }
-    fn get_old_params(&self) -> &Vec<NodeIdentifier> {
-        &self.old_params
+    fn get_old_params(&self) -> Vec<NodeIdentifier> {
+        self.old_params.clone()
     }
-    fn get_gradients(&self) -> &Vec<NodeIdentifier> {
-        &self.grads
+    fn get_gradients(&self) -> Vec<NodeIdentifier> {
+        self.grads.clone()
     }
-    fn get_new_params(&self) -> &Vec<NodeIdentifier> {
-        &self.new_params
+    fn get_new_params(&self) -> Vec<NodeIdentifier> {
+        self.new_params.clone()
     }
-    fn get_old_state(&self) -> &Vec<NodeIdentifier> {
-        &self.dummy_state
+    fn get_old_state(&self) -> Vec<NodeIdentifier> {
+        self.dummy_state.clone()
     }
-    fn get_new_state(&self) -> &Vec<NodeIdentifier> {
-        &self.dummy_state
+    fn get_new_state(&self) -> Vec<NodeIdentifier> {
+        self.dummy_state.clone()
     }
     fn get_user_params(&self) -> f32 {
         self.momentum

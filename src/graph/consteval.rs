@@ -206,6 +206,18 @@ impl Context {
                         changed = true;
                     }
                 }
+                Operation::Sin(a) => {
+                    if a == to_remove {
+                        self.nodes[dep_node].operation = Operation::Log(rep_with);
+                        changed = true;
+                    }
+                }
+                Operation::Cos(a) => {
+                    if a == to_remove {
+                        self.nodes[dep_node].operation = Operation::Log(rep_with);
+                        changed = true;
+                    }
+                }
                 Operation::Sqrt(a) => {
                     if a == to_remove {
                         self.nodes[dep_node].operation = Operation::Sqrt(rep_with);
@@ -606,6 +618,16 @@ impl Context {
                     }
                 }
                 Operation::Log(a) => {
+                    if self.nodes[a].is_const().is_none() {
+                        to_visit.push(a);
+                    }
+                }
+                Operation::Sin(a) => {
+                    if self.nodes[a].is_const().is_none() {
+                        to_visit.push(a);
+                    }
+                }
+                Operation::Cos(a) => {
                     if self.nodes[a].is_const().is_none() {
                         to_visit.push(a);
                     }

@@ -3,11 +3,11 @@ use xla::{Literal, PjRtBuffer, PjRtDevice, PjRtLoadedExecutable};
 use crate::graph::{Context, ContextError, Node, NodeIdentifier, Result};
 
 pub struct Metric {
-    computation: Context,
-    network_outputs: Vec<NodeIdentifier>,
-    targets: Vec<NodeIdentifier>,
-    loss: NodeIdentifier,
-    auxiliary_metrics: Vec<NodeIdentifier>,
+    pub(crate) computation: Context,
+    pub(crate) network_outputs: Vec<NodeIdentifier>,
+    pub(crate) targets: Vec<NodeIdentifier>,
+    pub(crate) loss: NodeIdentifier,
+    pub(crate) auxiliary_metrics: Vec<NodeIdentifier>,
 }
 
 pub struct SupervisedModel {
@@ -28,6 +28,9 @@ pub struct SupervisedModel {
     // list of output nodes
     // will be buffers at execution
     pub(crate) outputs: Vec<NodeIdentifier>,
+    pub(crate) loss: NodeIdentifier,
+    pub(crate) targets: Vec<NodeIdentifier>,
+    pub(crate) auxiliary_metrics: Vec<NodeIdentifier>,
 
     // separate context which takes network outputs and targets
     pub(crate) metric: Metric,
@@ -46,7 +49,7 @@ impl SupervisedModel {
     // fuse the network and compute_metrics contexts and build the evaluation_computation
     // further augment the context to return derivatives of all params and then build the gradient_computation
     pub fn new(
-        mut network: Context,
+        network: Context,
         params: Vec<NodeIdentifier>,
         inputs: Vec<NodeIdentifier>,
         outputs: Vec<NodeIdentifier>,
@@ -58,7 +61,7 @@ impl SupervisedModel {
         let n_params = params.len();
         let n_inputs = inputs.len();
         let n_outputs = outputs.len();
-        let n_targets = outputs.len();
+        let n_targets = metric.targets.len();
         let n_aux_metrics = metric.auxiliary_metrics.len();
 
         let mut eval_context = network.clone();
@@ -68,16 +71,20 @@ impl SupervisedModel {
         //outputs is a direct output of inference context
         //targets are supplied in constructor
         let mut remap_nodes = vec![metric.loss];
-        remap_nodes.extend(metric.auxiliary_metrics);
+        remap_nodes.extend(metric.auxiliary_metrics.clone());
+        remap_nodes.extend(metric.targets.clone());
         let mut eval_metrics = eval_context.compose_context(
             &metric.computation,
             remap_nodes,
-            outputs,
-            metric.network_outputs,
+            &outputs,
+            &metric.network_outputs,
         )?;
 
-        let evaluation_computation = eval_context.build("evaluation_computation", eval_metrics)?;
+        let evaluation_computation =
+            eval_context.build("evaluation_computation", &eval_metrics)?;
         let loss = eval_metrics.drain(0..1).next().unwrap();
+        let auxiliary_metrics: Vec<NodeIdentifier> = eval_metrics.drain(0..n_aux_metrics).collect();
+        let targets: Vec<NodeIdentifier> = eval_metrics.drain(0..).collect();
         let mut gradient_context = eval_context.clone();
 
         //Gradient computation: diff loss of eval_context wrt all params
@@ -96,6 +103,9 @@ impl SupervisedModel {
             params,
             inputs,
             outputs,
+            loss,
+            targets,
+            auxiliary_metrics,
             metric,
             aux_metric_names,
             evaluation_computation,
@@ -105,14 +115,14 @@ impl SupervisedModel {
     }
 
     pub fn compile_inference(
-        &self,
+        &mut self,
         client: xla::PjRtClient,
     ) -> Result<SupervisedInferenceExecutable> {
         let n_params = self.n_params;
         let n_inputs = self.n_inputs;
         let n_outputs = self.n_outputs;
 
-        let inference_computation = self.network.build("inference", self.outputs)?;
+        let inference_computation = self.network.build("inference", &self.outputs)?;
 
         let executable = inference_computation.compile(&client)?;
 

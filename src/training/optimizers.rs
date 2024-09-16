@@ -33,6 +33,11 @@ pub trait Optimizer<U> {
     fn get_gradients(&self) -> Vec<NodeIdentifier>;
 
     /// Point to the target inputs in the step context.
+    ///
+    /// The philosophy here is that training targets could
+    /// be used to encode relevant metadata for the optimization
+    /// step. In particular, for the dynamic batch normalization
+    /// optimizer, the targets can be used to hold the batch mask.
     fn get_target_inputs(&self) -> Vec<NodeIdentifier>;
 
     /// Point to the new parameters in the step context.

@@ -83,15 +83,17 @@ impl Context {
         BatchNormParams<xla::Literal>,
     )> {
         let shape = self.nodes[input_node].shape.clone();
-        let last_dim = shape.sizes[shape.ndims() - 1];
+        let ndims = shape.ndims();
+        let last_dim = shape.sizes[ndims - 1];
         let dtype = self.nodes[input_node].dtype;
 
         dtypes::check_fp_type(dtype)?;
 
         let mut param_shapes = shape.clone();
-        for i in 0..param_shapes.ndims() - 1 {
+        for i in 0..ndims - 1 {
             param_shapes.sizes[i] = 1;
         }
+        param_shapes.sizes[ndims - 1] = last_dim;
 
         let mut mu_name = name.to_owned();
         mu_name.push_str("_mu");
@@ -100,14 +102,6 @@ impl Context {
         let mut sigma_name = name.to_owned();
         sigma_name.push_str("_sigma");
         let sigma = self.parameter(sigma_name, param_shapes.clone(), dtype)?;
-
-        let mut alpha_name = name.to_owned();
-        alpha_name.push_str("_alpha");
-        let alpha = self.parameter(alpha_name, param_shapes.clone(), dtype)?;
-
-        let mut beta_name = name.to_owned();
-        beta_name.push_str("_beta");
-        let beta = self.parameter(beta_name, param_shapes.clone(), dtype)?;
 
         let epsilon = self.scalar(eps, dtype)?;
 

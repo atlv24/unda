@@ -105,15 +105,11 @@ impl Context {
                         mu,
                         sigma,
                         epsilon,
-                        alpha,
-                        beta,
                         x,
                     } => {
                         to_visit.push(mu);
                         to_visit.push(sigma);
                         to_visit.push(epsilon);
-                        to_visit.push(alpha);
-                        to_visit.push(beta);
                         to_visit.push(x);
                     }
                 }

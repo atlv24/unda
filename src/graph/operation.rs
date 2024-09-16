@@ -77,8 +77,6 @@ pub enum Operation {
         mu: NodeIdentifier,
         sigma: NodeIdentifier,
         epsilon: NodeIdentifier,
-        alpha: NodeIdentifier,
-        beta: NodeIdentifier,
         x: NodeIdentifier,
     },
 
@@ -151,15 +149,11 @@ impl Hash for Operation {
                 mu,
                 sigma,
                 epsilon,
-                alpha,
-                beta,
                 x,
             } => {
                 mu.hash(state);
                 sigma.hash(state);
                 epsilon.hash(state);
-                alpha.hash(state);
-                beta.hash(state);
                 x.hash(state);
             }
             Self::OneHot(node) => node.hash(state),

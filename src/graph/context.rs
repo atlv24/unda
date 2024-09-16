@@ -209,17 +209,13 @@ impl Context {
                 mu,
                 sigma,
                 epsilon,
-                alpha,
-                beta,
                 x,
             } => {
                 format!(
-                    "BatchNorm {} {} {} {} {} {}",
+                    "BatchNorm {} {} {} {}",
                     self.to_string(mu),
                     self.to_string(sigma),
                     self.to_string(epsilon),
-                    self.to_string(alpha),
-                    self.to_string(beta),
                     self.to_string(x)
                 )
             }

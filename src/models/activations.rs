@@ -4,12 +4,14 @@ use crate::graph::{
 
 impl Context {
 
+    /// ReLU activation function.
     pub fn relu(&mut self, a: NodeIdentifier) -> Result<NodeIdentifier> {
         let a_dtype = self.nodes[a].dtype;
         let const_zero = self.scalar(0, a_dtype)?;
         self.maximum(const_zero, a)
     }
 
+    /// Leaky ReLU activation function with leak parameter `alpha`.
     pub fn leaky_relu(&mut self, a: NodeIdentifier, alpha: f32) -> Result<NodeIdentifier> {
         let a_dtype = self.nodes[a].dtype;
         //TODO: force dtype to be floating point or else this just becomes normal relu
@@ -19,6 +21,7 @@ impl Context {
         self.maximum(small_x, a)
     }
 
+    /// Sigmoid activation function.
     pub fn sigmoid(&mut self, a: NodeIdentifier) -> Result<NodeIdentifier> {
         let a_dtype = self.nodes[a].dtype;
         let one = self.scalar(1, a_dtype)?;
@@ -30,6 +33,7 @@ impl Context {
         self.div(one, one_p_exp_x)
     }
 
+    /// Tanh activation function.
     pub fn tanh(&mut self, a: NodeIdentifier) -> Result<NodeIdentifier> {
         let a_dtype = self.nodes[a].dtype;
         let two = self.scalar(2, a_dtype)?;

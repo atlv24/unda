@@ -3,6 +3,11 @@ use crate::graph::{
 };
 
 impl Context {
+
+    /// Mean cross entropy loss function.
+    ///
+    /// Assumes two axes for both inputs:
+    /// First axis is batch, second is classes.
     pub fn mean_cross_entropy(
         &mut self,
         prediction_probabilities: NodeIdentifier,

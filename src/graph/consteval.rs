@@ -337,8 +337,6 @@ impl Context {
                     mu,
                     sigma,
                     epsilon,
-                    alpha,
-                    beta,
                     x,
                 } => {
                     if mu == to_remove {
@@ -347,8 +345,6 @@ impl Context {
                             mu: rep_with,
                             sigma,
                             epsilon,
-                            alpha,
-                            beta,
                             x,
                         }
                     } else if sigma == to_remove {
@@ -357,8 +353,6 @@ impl Context {
                             mu,
                             sigma: rep_with,
                             epsilon,
-                            alpha,
-                            beta,
                             x,
                         }
                     } else if epsilon == to_remove {
@@ -367,28 +361,6 @@ impl Context {
                             mu,
                             sigma,
                             epsilon: rep_with,
-                            alpha,
-                            beta,
-                            x,
-                        }
-                    } else if alpha == to_remove {
-                        changed = true;
-                        self.nodes[dep_node].operation = Operation::BatchNorm {
-                            mu,
-                            sigma,
-                            epsilon,
-                            alpha: rep_with,
-                            beta,
-                            x,
-                        }
-                    } else if beta == to_remove {
-                        changed = true;
-                        self.nodes[dep_node].operation = Operation::BatchNorm {
-                            mu,
-                            sigma,
-                            epsilon,
-                            alpha,
-                            beta: rep_with,
                             x,
                         }
                     } else if x == to_remove {
@@ -397,8 +369,6 @@ impl Context {
                             mu,
                             sigma,
                             epsilon,
-                            alpha,
-                            beta,
                             x: rep_with,
                         }
                     }
@@ -679,8 +649,6 @@ impl Context {
                     mu,
                     sigma,
                     epsilon,
-                    alpha,
-                    beta,
                     x,
                 } => {
                     if self.nodes[mu].is_const().is_none() {
@@ -691,12 +659,6 @@ impl Context {
                     }
                     if self.nodes[epsilon].is_const().is_none() {
                         to_visit.push(epsilon)
-                    }
-                    if self.nodes[alpha].is_const().is_none() {
-                        to_visit.push(alpha)
-                    }
-                    if self.nodes[beta].is_const().is_none() {
-                        to_visit.push(beta)
                     }
                     if self.nodes[x].is_const().is_none() {
                         to_visit.push(x)

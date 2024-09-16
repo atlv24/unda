@@ -1,9 +1,26 @@
 use crate::graph::{Context, dtypes::check_int_type, NodeIdentifier, Result};
 
+/// A struct representing the loss and all auxiliary metrics of the network given
+/// network outputs and supervised training targets.
+///
+/// The metric functions defined in this module should be used for building up a context
+/// that takes outputs and targets as parameters and that context and its relevant nodes
+/// should be bundled using this struct.
+pub struct Metrics {
+    pub(crate) computation: Context,
+    pub(crate) network_outputs: Vec<NodeIdentifier>,
+    pub(crate) targets: Vec<NodeIdentifier>,
+    pub(crate) loss: NodeIdentifier,
+    pub(crate) auxiliary_metrics: Vec<NodeIdentifier>,
+}
+
 impl Context {
 
-    // assumes dense_predictions is rank 2 with dimension 0 being batch and dimension 1 being predictions
-    // assumes sparse_label_vector is rank 1 i64 of class labels
+    /// Accuracy of predictions compared to labels.
+    ///
+    /// `dense_predictions` is a 2D tensor with first axis being
+    /// the batch axis and second being the logits. `sparse_label_vector`
+    /// only has the batch axis and should have an integer data type.
     pub fn accuracy(
         &mut self,
         dense_predictions: NodeIdentifier,

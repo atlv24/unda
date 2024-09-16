@@ -548,30 +548,22 @@ impl Context {
                         mu,
                         sigma,
                         epsilon,
-                        alpha,
-                        beta,
                         x,
                     } => {
                         if unda_xla_map.contains_key(&mu)
                             && unda_xla_map.contains_key(&sigma)
                             && unda_xla_map.contains_key(&epsilon)
-                            && unda_xla_map.contains_key(&alpha)
-                            && unda_xla_map.contains_key(&beta)
                             && unda_xla_map.contains_key(&x)
                             && xla_op_slotmap.contains_key(unda_xla_map[&mu])
                             && xla_op_slotmap.contains_key(unda_xla_map[&sigma])
                             && xla_op_slotmap.contains_key(unda_xla_map[&epsilon])
-                            && xla_op_slotmap.contains_key(unda_xla_map[&alpha])
-                            && xla_op_slotmap.contains_key(unda_xla_map[&beta])
                             && xla_op_slotmap.contains_key(unda_xla_map[&x])
                         {
                             let sqrt_op = xla_op_slotmap[unda_xla_map[&sigma]].sqrt()?;
                             // how much stuff needs to be inserted into the slotmap here???
                             let add_eps_op = sqrt_op.add_(&xla_op_slotmap[unda_xla_map[&epsilon]])?;
                             let x_div_op = xla_op_slotmap[unda_xla_map[&x]].div_(&add_eps_op)?;
-                            let alpha_mul_op = xla_op_slotmap[unda_xla_map[&alpha]].mul_(&x_div_op)?;
-                            let beta_add_op = xla_op_slotmap[unda_xla_map[&beta]].add_(&alpha_mul_op)?;
-                            let xla_id = xla_op_slotmap.insert(beta_add_op);
+                            let xla_id = xla_op_slotmap.insert(x_div_op);
                             unda_xla_map.insert(*dependent_op, xla_id);
                             unda_op_queue.push_back(*dependent_op);
                             covered_ops.insert(*dependent_op);

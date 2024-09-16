@@ -137,7 +137,7 @@ fn build_model_and_optimizer(client: &xla::PjRtClient) -> Result<PjRtLoadedExecu
 
     model.compile(
         "train_step",
-        vec![
+        &vec![
             loss, accuracy,
             //w1_new, b1_new,
             //w2_new, b2_new,

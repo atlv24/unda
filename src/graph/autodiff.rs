@@ -319,8 +319,6 @@ impl Context {
                             mu,
                             sigma,
                             epsilon,
-                            alpha,
-                            beta,
                             x,
                         } => {
                             let next_pullback = self.diff(output, dependent_node)?;
@@ -331,23 +329,10 @@ impl Context {
                                 return Ok(x);
                             } else if epsilon == with_respect_to {
                                 panic!("You shouldn't differentiate the epsilon parameter of batch normalization.")
-                            } else if alpha == with_respect_to {
-                                let sig_eps = self.add(sigma, epsilon)?;
-                                let sqrt_sig = self.inv_sqrt(sig_eps)?;
-                                let x_mu = self.sub(x, mu)?;
-                                let x_div = self.mul(x_mu, sqrt_sig)?;
-                                let mut pullback = self.mul(next_pullback, x_div)?;
-                                for i in 0..self.nodes[x].shape.ndims() - 1 {
-                                    pullback = self.reduce_sum(pullback, i as i64, true)?;
-                                }
-                                dependent_pullbacks.push(pullback);
-                            } else if beta == with_respect_to {
-                                dependent_pullbacks.push(next_pullback);
                             } else {
                                 let sig_eps = self.add(sigma, epsilon)?;
                                 let sqrt_sig = self.inv_sqrt(sig_eps)?;
-                                let alpha_div = self.mul(alpha, sqrt_sig)?;
-                                let mut pullback = self.mul(next_pullback, alpha_div)?;
+                                let mut pullback = self.mul(next_pullback, sqrt_sig)?;
                                 for i in 0..self.nodes[x].shape.ndims() - 1 {
                                     pullback = self.reduce_sum(pullback, i as i64, true)?;
                                 }

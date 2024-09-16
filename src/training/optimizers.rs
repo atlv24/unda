@@ -279,8 +279,8 @@ pub struct ChainedOptimizer<U> {
 /// Chain the optimizers `opt1` and `opt2` together.
 ///
 /// The resulting optimizers will expect all the parameters
-/// of `opt1` following by all the paraemters of `opt2`.
-/// Likewise for the gradients, and state.
+/// of `opt1` followed by all the parameters of `opt2`.
+/// Likewise for the gradients, target inputs, and state.
 pub fn chain<U1, U2, O1: Optimizer<U1>, O2: Optimizer<U2>>(
     opt1: O1,
     opt2: O2,

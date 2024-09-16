@@ -2,16 +2,23 @@ use crate::graph::{callsite::callsite, dtypes, Context, Node, NodeIdentifier, Op
 
 use super::initializers::{ConstInit, Initializer};
 
+/// ConvParams struct hold the kernel and bias of any dense or
+/// convolutional layer.
+// TODO: This should derive our tree flattening trait!
 pub struct ConvParams<T> {
     kernel: T,
     bias: T,
 }
 
+/// BatchNormParams holds the parameters of a batch normalization
+/// layer.
+///
+/// `mu` and `sigma` are the learned mean and variance of the input,
+/// respectively, and are optimized using the BatchNormOptimizer.
+// TODO: This should derive our tree flattening trait!
 pub struct BatchNormParams<T> {
     mu: T,
     sigma: T,
-    alpha: T,
-    beta: T,
 }
 
 impl Context {
@@ -105,8 +112,6 @@ impl Context {
         let epsilon = self.scalar(eps, dtype)?;
 
         let mu_literal = ConstInit { constant: 0.0 }.initialize(0, &param_shapes, dtype)?;
-        let beta_literal = ConstInit { constant: 0.0 }.initialize(0, &param_shapes, dtype)?;
-        let alpha_literal = ConstInit { constant: 1.0 }.initialize(0, &param_shapes, dtype)?;
         let sigma_literal = ConstInit { constant: 1.0 }.initialize(0, &param_shapes, dtype)?;
 
         let batchnorm_node = self.nodes.insert(Node {
@@ -116,8 +121,6 @@ impl Context {
                 mu,
                 sigma,
                 epsilon,
-                alpha,
-                beta,
                 x: input_node,
             },
             dtype,
@@ -128,14 +131,10 @@ impl Context {
             BatchNormParams {
                 mu,
                 sigma,
-                alpha,
-                beta,
             },
             BatchNormParams {
                 mu: mu_literal,
                 sigma: sigma_literal,
-                alpha: alpha_literal,
-                beta: beta_literal,
             },
         ));
     }

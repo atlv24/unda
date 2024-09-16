@@ -6,6 +6,10 @@ use crate::graph::{Context, NodeIdentifier};
 use crate::graph::{ContextError, Node};
 use crate::models::supervised::SupervisedModel;
 
+/// A struct for abstracting the supervised training of a network.
+///
+/// `U` is the user parameters of the optimizer used for training.
+/// `O` is the optimizer type.
 pub struct SupervisedTrainer<U, O> {
     pub n_params: usize,
     pub n_inputs: usize,
@@ -13,23 +17,31 @@ pub struct SupervisedTrainer<U, O> {
     pub n_targets: usize,
     pub n_aux_metrics: usize,
 
+    /// Supervised model which the optimizer acts on.
     pub(crate) model: SupervisedModel,
+    /// Optimizer which acts on the supervised model.
     pub(crate) optimizer: O,
+    /// Placeholder for user-specified optimization params.
     user_opt_params: U,
 
-    // should take parameters, inputs, targets, optimizer state
-    // return outputs, loss, metrics, gradients, new parameters, new optimizer state
+    /// A Context which takes parameters, inputs, targets, optimizer state
+    /// and returns outputs, loss, metrics, gradients, new parameters, new optimizer state
     full_step_ctx: Context,
+    /// Compiled version of the above Context.
     full_step_comp: XlaComputation,
+    /// Device-loaded version of the above computation.
     full_step_exec: PjRtLoadedExecutable,
 
-    // points to the optimized parameters as an output of the context
+    /// Points to the optimized parameters in `full_step_ctx`.
     pub(crate) new_params: Vec<NodeIdentifier>,
 
+    /// Points to the old optimizer state in `full_step_ctx`.
     pub(crate) old_opt_state: Vec<NodeIdentifier>,
+    /// Points to the new optimizer state in `full_step_ctx`.
     pub(crate) new_opt_state: Vec<NodeIdentifier>,
 }
 
+/// Encapsulates the data of a single training step.
 pub struct TrainingStepData {
     outputs: Vec<PjRtBuffer>,
     loss: PjRtBuffer,
@@ -39,15 +51,22 @@ pub struct TrainingStepData {
     new_opt_state: Vec<PjRtBuffer>,
 }
 
+/// Encapsulates the history of the loss and all auxiliary metrics, but only the most recent parameters.
 pub struct TrainingHistory {
     loss: Vec<Literal>,
     metrics: Vec<Vec<Literal>>,
     params: Vec<PjRtBuffer>,
 }
 
+pub enum TrainingLog {
+    Mute,
+    Terminal,
+    LogFile(String)
+}
+
 impl TrainingHistory {
-    // append loss and metrics while replacing parameters
-    // and return the additional data of outputs, gradients, new optimizer state
+    /// Append loss and metrics while replacing parameters
+    /// and return the additional data of outputs, gradients, new optimizer state.
     fn append(
         &mut self,
         mut step_data: TrainingStepData,
@@ -73,7 +92,6 @@ impl TrainingHistory {
 }
 
 impl<U, O: Optimizer<U>> SupervisedTrainer<U, O> {
-    // TODO: WILL FAIL NEED PROPR GRAPH MERGING
     pub fn new(model: SupervisedModel, optimizer: O, client: &PjRtClient) -> Result<Self> {
         let mut full_step_ctx = model.gradient_context.clone();
 
@@ -196,12 +214,23 @@ impl<U, O: Optimizer<U>> SupervisedTrainer<U, O> {
         })
     }
 
+    /// Fit an infinite iterator of training data.
+    ///
+    /// `init_params` are the initialized literal parameters of the network.
+    /// `train_dataset` is an infinite iterator of training data.
+    /// `n_steps` is the number of gradient steps training should last for.
+    /// `valid_dataset` is an optional finite validation dataset.
+    /// `validate_every` if `validate_dataset`` is not None, validated every this many training steps.
+    /// `training_log` whether to print training progress, and whether to send it to a file or the terminal.
+    //TODO: actually implement validation and logging.
     pub fn fit_infinite_data<D: Iterator<Item = (Vec<Literal>, Vec<Literal>)>>(
         &self,
         init_params: Vec<Literal>,
         mut train_dataset: D,
         n_steps: usize,
-        print_progress: bool,
+        valid_dataset: Option<D>,
+        validate_every: usize,
+        training_log: TrainingLog,
     ) -> Result<TrainingHistory> {
         let mut params = Vec::new();
         for p in init_params.iter() {
@@ -240,12 +269,23 @@ impl<U, O: Optimizer<U>> SupervisedTrainer<U, O> {
         Ok(record)
     }
 
+    /// Fit a finite iterator of training data.
+    ///
+    /// `init_params` are the initialized literal parameters of the network.
+    /// `train_dataset` is a function which takes the current epoch and returns a shuffled training dataset.
+    /// `n_epochs` is the number of times to loop through the training dataset
+    /// `valid_dataset` is an optional finite validation dataset.
+    /// `validate_every` if `validate_dataset`` is not None, validated every this many epochs.
+    /// `training_log` whether to print training progress, and whether to send it to a file or the terminal.
+    //TODO: actually implement validation and logging.
     pub fn fit_finite_data<D: Iterator<Item = (Vec<Literal>, Vec<Literal>)>>(
         &self,
         init_params: Vec<Literal>,
         train_dataset: fn(usize) -> D,
         n_epochs: usize,
-        print_progress: bool,
+        valid_dataset: Option<D>,
+        validate_every: usize,
+        training_log: TrainingLog,
     ) -> Result<TrainingHistory> {
         let mut params = Vec::new();
         for p in init_params.iter() {

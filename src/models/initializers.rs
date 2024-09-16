@@ -1,5 +1,9 @@
 use crate::graph::shape::Shape;
 
+/// `Initializer` represents a function which can initialize the parameters of a network.
+///
+/// Given a seed, shape, and data type, the `initialize` function should return a random
+/// tensor of the given shape and data type.
 pub trait Initializer {
     fn initialize(
         &self,
@@ -9,6 +13,7 @@ pub trait Initializer {
     ) -> xla::Result<xla::Literal>;
 }
 
+/// `ConstInit` struct as an instance of `Initializer` that fills tensors with a given constant.
 pub struct ConstInit {
     pub constant: f32
 }

@@ -64,9 +64,11 @@ impl Context {
                     //Again again, clone() here is not wonderful, there's gotta be a better way to
                     //store the i64 vec for Transpose
                     match self.nodes[dependent_node].operation.clone() {
-                        Operation::Constant(_) 
-                            | Operation::RngUniform(_, _, _) 
-                            | Operation::RngNormal(_, _, _) => panic!("Constant found as dependent node!"),
+                        Operation::Constant(_)
+                        | Operation::RngUniform(_, _, _)
+                        | Operation::RngNormal(_, _, _) => {
+                            panic!("Constant found as dependent node!")
+                        }
                         Operation::Parameter(_) => panic!("Parameter found as dependent node!"),
                         Operation::StopGradient(_) => continue,
 
@@ -233,6 +235,41 @@ impl Context {
                             dependent_pullbacks.push(next_pullback);
                         }
 
+                        Operation::Sqrt(a) => {
+                            let next_pullback = self.diff(output, dependent_node)?;
+                            let half = self.scalar(0.5, wrt_dtype)?;
+                            let quotient = self.div(half, dependent_node)?;
+
+                            let next_pullback = self.mul(quotient, next_pullback)?;
+                            dependent_pullbacks.push(next_pullback);
+                        }
+
+                        Operation::InvSqrt(a) => {
+                            let next_pullback = self.diff(output, dependent_node)?;
+                            let neg_half = self.scalar(-0.5, wrt_dtype)?;
+                            let square = self.mul(dependent_node, dependent_node)?;
+                            let cube = self.mul(dependent_node, square)?;
+                            let quotient = self.div(neg_half, cube)?;
+
+                            let next_pullback = self.mul(quotient, next_pullback)?;
+                            dependent_pullbacks.push(next_pullback);
+                        }
+
+                        Operation::Sin(a) => {
+                            let next_pullback = self.diff(output, dependent_node)?;
+                            let cos = self.cos(a)?;
+                            let next_pullback = self.mul(cos, next_pullback)?;
+                            dependent_pullbacks.push(next_pullback);
+                        }
+
+                        Operation::Cos(a) => {
+                            let next_pullback = self.diff(output, dependent_node)?;
+                            let neg_sin = self.sin(a)?;
+                            let neg_sin = self.neg(neg_sin);
+                            let next_pullback = self.mul(neg_sin, next_pullback)?;
+                            dependent_pullbacks.push(next_pullback);
+                        }
+
                         Operation::Neg(_) => {
                             let next_pullback = self.diff(output, dependent_node)?;
                             dependent_pullbacks.push(self.neg(next_pullback));
@@ -273,6 +310,33 @@ impl Context {
                             );
                             } else {
                                 continue;
+                            }
+                        }
+
+                        // WILL FAIL!!!
+                        // TODO: ReduceSum gradients for alpha and beta over the first few axes
+                        Operation::BatchNorm {
+                            mu,
+                            sigma,
+                            epsilon,
+                            x,
+                        } => {
+                            let next_pullback = self.diff(output, dependent_node)?;
+
+                            if mu == with_respect_to {
+                                return Ok(x);
+                            } else if sigma == with_respect_to {
+                                return Ok(x);
+                            } else if epsilon == with_respect_to {
+                                panic!("You shouldn't differentiate the epsilon parameter of batch normalization.")
+                            } else {
+                                let sig_eps = self.add(sigma, epsilon)?;
+                                let sqrt_sig = self.inv_sqrt(sig_eps)?;
+                                let mut pullback = self.mul(next_pullback, sqrt_sig)?;
+                                for i in 0..self.nodes[x].shape.ndims() - 1 {
+                                    pullback = self.reduce_sum(pullback, i as i64, true)?;
+                                }
+                                dependent_pullbacks.push(pullback);
                             }
                         }
 

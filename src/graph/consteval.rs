@@ -35,15 +35,14 @@ impl Context {
                         changed = true;
                     }
                 }
-                Operation::RngUniform(a, b, shape)
-                    | Operation::RngNormal(a, b, shape) => {
+                Operation::RngUniform(a, b, shape) | Operation::RngNormal(a, b, shape) => {
                     if a == to_remove {
                         self.nodes[dep_node].operation = Operation::RngUniform(rep_with, b, shape);
                         changed = true;
                     } else if b == to_remove {
                         self.nodes[dep_node].operation = Operation::RngUniform(a, rep_with, shape);
                         changed = true;
-                    } 
+                    }
                 }
                 Operation::Pow(a, b) => {
                     if a == to_remove && a == b {
@@ -201,10 +200,33 @@ impl Context {
                         changed = true;
                     }
                 }
-
                 Operation::Log(a) => {
                     if a == to_remove {
                         self.nodes[dep_node].operation = Operation::Log(rep_with);
+                        changed = true;
+                    }
+                }
+                Operation::Sin(a) => {
+                    if a == to_remove {
+                        self.nodes[dep_node].operation = Operation::Log(rep_with);
+                        changed = true;
+                    }
+                }
+                Operation::Cos(a) => {
+                    if a == to_remove {
+                        self.nodes[dep_node].operation = Operation::Log(rep_with);
+                        changed = true;
+                    }
+                }
+                Operation::Sqrt(a) => {
+                    if a == to_remove {
+                        self.nodes[dep_node].operation = Operation::Sqrt(rep_with);
+                        changed = true;
+                    }
+                }
+                Operation::InvSqrt(a) => {
+                    if a == to_remove {
+                        self.nodes[dep_node].operation = Operation::InvSqrt(rep_with);
                         changed = true;
                     }
                 }
@@ -284,10 +306,7 @@ impl Context {
                         }
                     }
                 }
-                Operation::ReduceArgmax {
-                    node,
-                    dim,
-                } => {
+                Operation::ReduceArgmax { node, dim } => {
                     if node == to_remove {
                         changed = true;
                         self.nodes[dep_node].operation = Operation::ReduceArgmax {
@@ -314,9 +333,50 @@ impl Context {
                         }
                     }
                 }
+                Operation::BatchNorm {
+                    mu,
+                    sigma,
+                    epsilon,
+                    x,
+                } => {
+                    if mu == to_remove {
+                        changed = true;
+                        self.nodes[dep_node].operation = Operation::BatchNorm {
+                            mu: rep_with,
+                            sigma,
+                            epsilon,
+                            x,
+                        }
+                    } else if sigma == to_remove {
+                        changed = true;
+                        self.nodes[dep_node].operation = Operation::BatchNorm {
+                            mu,
+                            sigma: rep_with,
+                            epsilon,
+                            x,
+                        }
+                    } else if epsilon == to_remove {
+                        changed = true;
+                        self.nodes[dep_node].operation = Operation::BatchNorm {
+                            mu,
+                            sigma,
+                            epsilon: rep_with,
+                            x,
+                        }
+                    } else if x == to_remove {
+                        changed = true;
+                        self.nodes[dep_node].operation = Operation::BatchNorm {
+                            mu,
+                            sigma,
+                            epsilon,
+                            x: rep_with,
+                        }
+                    }
+                }
                 Operation::Transpose(a, dim) => {
                     if a == to_remove {
-                        self.nodes[dep_node].operation = Operation::Transpose(rep_with, dim.clone());
+                        self.nodes[dep_node].operation =
+                            Operation::Transpose(rep_with, dim.clone());
                         changed = true;
                     }
                 }
@@ -350,13 +410,68 @@ impl Context {
                 }
             }
         }
+
+        //iterate through all dependent node vecs that contain the to_remove node, and replace them
+        //with rep_with node
+
+        /*for (id, deps) in self.dependent_nodes.clone().iter().filter(|(_, nodes)| nodes.contains(&to_remove)) {
+            let deps_without = deps.clone().into_iter().filter(|node| node != &to_remove).collect::<Vec<NodeIdentifier>>();
+
+            self.dependent_nodes.insert(*id, deps_without);
+        }
+
+        if self.dependent_nodes.contains_key(&to_remove) {
+            let mut new_deps = self.dependent_nodes.remove(&to_remove).unwrap();
+            new_deps.extend(
+                self.dependent_nodes
+                    .get(&rep_with)
+                    .unwrap_or(&vec![])
+                    .iter(),
+            );
+            self.dependent_nodes.insert(rep_with, new_deps);
+        }
+
+        /*if let Some(deps) = self.dependent_nodes.remove(&to_remove) {
+            let mut prev_deps = self.dependent_nodes.get(&rep_with).unwrap_or(&Vec::new()).clone();
+            prev_deps.extend(deps.iter());
+
+            self.dependent_nodes.insert(rep_with, prev_deps);
+        }*/
+
+
+        */
+        if let Some((idx, _)) = self.parameters.iter().enumerate().find(|(_, node)| *node == &to_remove) {
+            self.parameters.remove(idx);
+        }
+
+        if let Some((idx, _)) = self
+            .constants
+            .iter()
+            .enumerate()
+            .find(|(_, node)| *node == &to_remove)
+        {
+            self.constants.remove(idx);
+        }
+
+        //self.nodes.remove(to_remove);
+
         Ok(changed)
     }
 
     // Utility function for handling products with tiled and reshaped constants
     // TODO: This should be made to handle arbitrary depth
-    fn replace_tiled_const(&mut self, a: NodeIdentifier, b: NodeIdentifier, top_level_node: NodeIdentifier) -> Result<bool> {
-        if let Operation::TileInDim { node, n_tiles: _, dim: _ } = self.nodes[a].operation {
+    fn replace_tiled_const(
+        &mut self,
+        a: NodeIdentifier,
+        b: NodeIdentifier,
+        top_level_node: NodeIdentifier,
+    ) -> Result<bool> {
+        if let Operation::TileInDim {
+            node,
+            n_tiles: _,
+            dim: _,
+        } = self.nodes[a].operation
+        {
             if self.nodes[node].is_one()? {
                 let tiled_b = self.tile_to_shape(b, self.nodes[top_level_node].shape.clone())?;
                 self.replace_index(top_level_node, tiled_b)?;
@@ -372,8 +487,7 @@ impl Context {
             } else {
                 self.replace_tiled_const(node, b, top_level_node)
             }
-        }
-        else {
+        } else {
             Ok(false)
         }
     }
@@ -398,7 +512,10 @@ impl Context {
         let mut visitied: HashSet<NodeIdentifier> = HashSet::new();
 
         while let Some(node_id) = to_visit.pop() {
-            if visitied.contains(&node_id) || modifications >= modification_limit {
+            if visitied.contains(&node_id)
+                || modifications >= modification_limit
+                || !self.nodes.contains_key(node_id)
+            {
                 continue;
             }
             match self.nodes[node_id].operation {
@@ -475,6 +592,26 @@ impl Context {
                         to_visit.push(a);
                     }
                 }
+                Operation::Sin(a) => {
+                    if self.nodes[a].is_const().is_none() {
+                        to_visit.push(a);
+                    }
+                }
+                Operation::Cos(a) => {
+                    if self.nodes[a].is_const().is_none() {
+                        to_visit.push(a);
+                    }
+                }
+                Operation::Sqrt(a) => {
+                    if self.nodes[a].is_const().is_none() {
+                        to_visit.push(a);
+                    }
+                }
+                Operation::InvSqrt(a) => {
+                    if self.nodes[a].is_const().is_none() {
+                        to_visit.push(a);
+                    }
+                }
                 Operation::Transpose(a, _) => {
                     if self.nodes[a].is_const().is_none() {
                         to_visit.push(a);
@@ -508,6 +645,25 @@ impl Context {
                         to_visit.push(a);
                     }
                 }
+                Operation::BatchNorm {
+                    mu,
+                    sigma,
+                    epsilon,
+                    x,
+                } => {
+                    if self.nodes[mu].is_const().is_none() {
+                        to_visit.push(mu)
+                    }
+                    if self.nodes[sigma].is_const().is_none() {
+                        to_visit.push(sigma)
+                    }
+                    if self.nodes[epsilon].is_const().is_none() {
+                        to_visit.push(epsilon)
+                    }
+                    if self.nodes[x].is_const().is_none() {
+                        to_visit.push(x)
+                    }
+                }
                 Operation::Select {
                     pred,
                     on_true,
@@ -534,15 +690,19 @@ impl Context {
                         to_visit.push(node);
                     }
                 }
-                Operation::TileInDim { node, n_tiles: _, dim: _ } => {
+                Operation::TileInDim {
+                    node,
+                    n_tiles: _,
+                    dim: _,
+                } => {
                     if self.nodes[node].is_const().is_none() {
                         to_visit.push(node);
                     }
                 }
                 Operation::ReduceMax { node, dim: _ }
                 | Operation::ReduceSum { node, dim: _ }
-                | Operation::ReduceMean { node, dim:_  }
-                | Operation:: ReduceArgmax { node, dim: _ } => {
+                | Operation::ReduceMean { node, dim: _ }
+                | Operation::ReduceArgmax { node, dim: _ } => {
                     if self.nodes[node].is_const().is_none() {
                         to_visit.push(node);
                     }

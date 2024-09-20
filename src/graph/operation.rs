@@ -18,6 +18,10 @@ pub enum Operation {
     Neg(NodeIdentifier),
     Log(NodeIdentifier),
     Exp(NodeIdentifier),
+    Sqrt(NodeIdentifier),
+    InvSqrt(NodeIdentifier),
+    Sin(NodeIdentifier),
+    Cos(NodeIdentifier),
 
     Equal(NodeIdentifier, NodeIdentifier),
     NotEqual(NodeIdentifier, NodeIdentifier),
@@ -69,9 +73,16 @@ pub enum Operation {
         dim: i64,
     },
 
+    BatchNorm {
+        mu: NodeIdentifier,
+        sigma: NodeIdentifier,
+        epsilon: NodeIdentifier,
+        x: NodeIdentifier,
+    },
+
     OneHot(NodeIdentifier),
     RngUniform(NodeIdentifier, NodeIdentifier, Shape),
-    RngNormal(NodeIdentifier, NodeIdentifier, Shape)
+    RngNormal(NodeIdentifier, NodeIdentifier, Shape),
 }
 
 impl Hash for Operation {
@@ -107,7 +118,15 @@ impl Hash for Operation {
             Self::StopGradient(a) => {
                 a.hash(state);
             }
-            Self::Log(a) | Self::Exp(a) | Self::Reshape(a) | Self::ZerosLike(a) | Self::Neg(a) => {
+            Self::Log(a)
+            | Self::Exp(a)
+            | Self::Reshape(a)
+            | Self::ZerosLike(a)
+            | Self::Neg(a)
+            | Self::Sqrt(a)
+            | Self::InvSqrt(a)
+            | Self::Sin(a)
+            | Self::Cos(a) => {
                 a.hash(state);
             }
             Self::Select {
@@ -125,6 +144,17 @@ impl Hash for Operation {
             | Self::ReduceArgmax { node, dim } => {
                 node.hash(state);
                 dim.hash(state)
+            }
+            Self::BatchNorm {
+                mu,
+                sigma,
+                epsilon,
+                x,
+            } => {
+                mu.hash(state);
+                sigma.hash(state);
+                epsilon.hash(state);
+                x.hash(state);
             }
             Self::OneHot(node) => node.hash(state),
             Self::Transpose(a, dim) => {
@@ -149,8 +179,7 @@ impl Hash for Operation {
                 n_tiles.hash(state);
                 dim.hash(state);
             }
-            Self::RngUniform(a, b, dim) 
-            | Self::RngNormal(a, b, dim) => {
+            Self::RngUniform(a, b, dim) | Self::RngNormal(a, b, dim) => {
                 a.hash(state);
                 b.hash(state);
                 dim.hash(state);
@@ -198,8 +227,12 @@ impl PartialEq for Operation {
                 },
             ) => pred == pred2 && on_true == on_true2 && on_false == on_false2,
             (&Self::TypeCast(a, ty), &Self::TypeCast(b, ty2)) => a == b && ty == ty2,
-            (&Self::RngUniform(a, b, shape), &Self::RngUniform(a2, b2, shape2)) => a == a2 && b == b2 && shape == shape2,
-            (&Self::RngNormal(a, b, shape), &Self::RngNormal(a2, b2, shape2)) => a == a2 && b == b2 && shape == shape2,
+            (&Self::RngUniform(a, b, shape), &Self::RngUniform(a2, b2, shape2)) => {
+                a == a2 && b == b2 && shape == shape2
+            }
+            (&Self::RngNormal(a, b, shape), &Self::RngNormal(a2, b2, shape2)) => {
+                a == a2 && b == b2 && shape == shape2
+            }
             (&Self::Transpose(a, dim), &Self::Transpose(b, dim2)) => a == b && dim == dim2,
             (
                 &Self::SliceInDim {

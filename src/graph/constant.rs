@@ -46,6 +46,18 @@ impl std::fmt::Display for ConstantBinding {
 }
 
 impl Context {
+    pub fn literal_const(&mut self, value: xla::Literal) -> Result<NodeIdentifier> {
+        let dtype = value.element_type()?;
+        let node_id = self.nodes.insert(Node {
+            callsite: callsite!(1),
+            shape: Shape::new(),
+            operation: Operation::Constant(ConstantBinding { value }),
+            dtype: dtype,
+        });
+        self.constants.push(node_id);
+        Ok(node_id)
+    }
+
     pub fn scalar<T: xla::ArrayElement + xla::NativeType>(
         &mut self,
         value: T,
@@ -130,6 +142,30 @@ impl Context {
         let shape = shape.into();
         let vec = (0..shape.size())
             .map(|_i| 0)
+            .collect::<Vec<i64>>();
+        let slice = vec.as_slice();
+        let value = xla::Literal::vec1(slice).convert(dtype.primitive_type())?;
+        let i64_vec = shape
+            .sizes
+            .iter()
+            .map(|d| *d as i64)
+            .collect::<Vec<i64>>();
+        let i64_slice = i64_vec.as_slice();
+        let reshaped = value.reshape(i64_slice)?;
+        let node_id = self.nodes.insert(Node {
+            callsite: callsite!(1),
+            shape,
+            operation: Operation::Constant(ConstantBinding { value: reshaped }),
+            dtype,
+        });
+        self.constants.push(node_id);
+        Ok(node_id)
+    }
+
+    pub fn ones<S: Into<Shape>>(&mut self, shape: S, dtype: xla::ElementType) -> Result<NodeIdentifier> {
+        let shape = shape.into();
+        let vec = (0..shape.size())
+            .map(|_i| 1)
             .collect::<Vec<i64>>();
         let slice = vec.as_slice();
         let value = xla::Literal::vec1(slice).convert(dtype.primitive_type())?;

@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io;
 use std::os::unix::fs::*;
 use std::time::Instant;
-use unda::core::graph::*;
+use unda::graph::*;
 use xla::{ElementType::*, PjRtClient, PjRtLoadedExecutable};
 
 const USE_CPU: bool = false;
@@ -137,7 +137,7 @@ fn build_model_and_optimizer(client: &xla::PjRtClient) -> Result<PjRtLoadedExecu
 
     model.compile(
         "train_step",
-        [
+        &vec![
             loss, accuracy,
             //w1_new, b1_new,
             //w2_new, b2_new,

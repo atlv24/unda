@@ -1,9 +1,6 @@
-use crate::graph::{
-    dtypes::check_fp_type, Context, NodeIdentifier, Result,
-};
+use crate::graph::{dtypes::check_fp_type, Context, NodeIdentifier, Result};
 
 impl Context {
-
     /// ReLU activation function.
     pub fn relu(&mut self, a: NodeIdentifier) -> Result<NodeIdentifier> {
         let a_dtype = self.nodes[a].dtype;
@@ -61,5 +58,4 @@ impl Context {
 
         self.div(unnormalized_exp, sum)
     }
-
 }

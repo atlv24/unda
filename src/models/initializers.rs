@@ -15,7 +15,7 @@ pub trait Initializer {
 
 /// `ConstInit` struct as an instance of `Initializer` that fills tensors with a given constant.
 pub struct ConstInit {
-    pub constant: f32
+    pub constant: f32,
 }
 
 impl Initializer for ConstInit {

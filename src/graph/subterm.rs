@@ -100,7 +100,7 @@ impl Context {
                         to_visit.push(on_false);
                     }
                     Operation::OneHot(node) => to_visit.push(node),
-                    Operation::Constant(_) | Operation::Parameter(_) => {},
+                    Operation::Constant(_) | Operation::Parameter(_) => {}
                     Operation::BatchNorm {
                         mu,
                         sigma,

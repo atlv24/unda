@@ -561,7 +561,8 @@ impl Context {
                         {
                             let sqrt_op = xla_op_slotmap[unda_xla_map[&sigma]].sqrt()?;
                             // how much stuff needs to be inserted into the slotmap here???
-                            let add_eps_op = sqrt_op.add_(&xla_op_slotmap[unda_xla_map[&epsilon]])?;
+                            let add_eps_op =
+                                sqrt_op.add_(&xla_op_slotmap[unda_xla_map[&epsilon]])?;
                             let x_div_op = xla_op_slotmap[unda_xla_map[&x]].div_(&add_eps_op)?;
                             let xla_id = xla_op_slotmap.insert(x_div_op);
                             unda_xla_map.insert(*dependent_op, xla_id);

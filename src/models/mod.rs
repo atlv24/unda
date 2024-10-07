@@ -1,8 +1,8 @@
-pub mod supervised;
-pub mod layers;
 pub mod activations;
-pub mod metrics;
-pub mod losses;
-pub mod initializers;
 pub mod inference;
+pub mod initializers;
+pub mod layers;
+pub mod losses;
+pub mod metrics;
+pub mod supervised;
 mod tests;

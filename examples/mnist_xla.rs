@@ -271,8 +271,10 @@ fn main() {
                 load_mnist_batch(&train_images, &train_labels, batch_idx)
                     .expect("Failed to load MNIST batch");
 
-            let lr =
-                xla::Literal::scalar(MIN_LEARNING_RATE.max(INIT_LEARNING_RATE * (LEARNING_RATE_DECAY.powf(epoch as f32))));
+            let lr = xla::Literal::scalar(
+                MIN_LEARNING_RATE
+                    .max(INIT_LEARNING_RATE * (LEARNING_RATE_DECAY.powf(epoch as f32))),
+            );
 
             // This is where ABSTRACT API REQUIREMENT 5 becomes pertinent
             // The user should not have to explicitly reference a dozen parameters like this
@@ -349,9 +351,7 @@ fn main() {
         let lr = xla::Literal::scalar(0f32);
 
         let xla_buffer = executable
-            .execute(&[
-                &test_imgs, &test_lbls, &w_out, &b_out, &lr,
-            ])
+            .execute(&[&test_imgs, &test_lbls, &w_out, &b_out, &lr])
             .expect("Failed to run PjRt executable");
 
         // This is where ABSTRACT API REQUIREMENT 4 becomes pertinent

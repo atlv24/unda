@@ -1,13 +1,13 @@
 pub mod autodiff;
 pub(crate) mod callsite;
 pub mod compile;
-pub mod merge;
 pub mod constant;
 pub mod consteval;
 pub mod context;
 pub mod dtypes;
 pub mod logic;
 pub mod math;
+pub mod merge;
 pub mod node;
 pub mod operation;
 pub mod parameter;

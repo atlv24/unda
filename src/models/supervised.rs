@@ -1,7 +1,7 @@
 use xla::{Literal, PjRtBuffer};
 
 use crate::graph::{Context, NodeIdentifier, Result};
-use crate::models::{metrics::Metrics, inference::InferenceExecutable};
+use crate::models::{inference::InferenceExecutable, metrics::Metrics};
 
 pub struct SupervisedModel {
     pub n_params: usize,
@@ -118,10 +118,7 @@ impl SupervisedModel {
         })
     }
 
-    pub fn compile_inference(
-        &mut self,
-        client: xla::PjRtClient,
-    ) -> Result<InferenceExecutable> {
+    pub fn compile_inference(&mut self, client: xla::PjRtClient) -> Result<InferenceExecutable> {
         let n_params = self.n_params;
         let n_inputs = self.n_inputs;
         let n_outputs = self.n_outputs;

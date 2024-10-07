@@ -333,8 +333,11 @@ impl Context {
         desired_remaps.extend(second_graph_inputs);
         let mut remaps = self.combine_graphs(other, &desired_remaps)?;
         let out_remaps = remaps.drain(0..n_remaps).collect();
-        let param_reps: Vec<(NodeIdentifier, NodeIdentifier)> =
-            first_graph_outputs.into_iter().zip(remaps).map(|x| (*x.0, x.1)).collect();
+        let param_reps: Vec<(NodeIdentifier, NodeIdentifier)> = first_graph_outputs
+            .into_iter()
+            .zip(remaps)
+            .map(|x| (*x.0, x.1))
+            .collect();
         self.fuse_nodes(&param_reps)?;
         Ok(out_remaps)
     }

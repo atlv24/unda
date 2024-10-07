@@ -1,5 +1,5 @@
 use super::*;
-use std::{path::Path};
+use std::path::Path;
 use xla::FromRawBytes;
 
 #[derive(Debug, Clone)]
@@ -114,15 +114,19 @@ impl Context {
     }
 
     // TODO: why is this 4d when it has 3 dimensions?
-    pub fn tensor_4d<T: xla::ArrayElement + xla::NativeType, const N: usize, const M: usize, const K: usize>(
+    pub fn tensor_4d<
+        T: xla::ArrayElement + xla::NativeType,
+        const N: usize,
+        const M: usize,
+        const K: usize,
+    >(
         &mut self,
         values: [[[T; M]; N]; K],
         dtype: xla::ElementType,
     ) -> Result<NodeIdentifier> {
         let vec = values
             .into_iter()
-            .flat_map(|f| f.into_iter()
-                      .flat_map(|k| k.into_iter()))
+            .flat_map(|f| f.into_iter().flat_map(|k| k.into_iter()))
             .collect::<Vec<T>>();
         let slice = vec.as_slice();
         let value = xla::Literal::vec1(slice).convert(dtype.primitive_type())?;
@@ -138,19 +142,16 @@ impl Context {
         Ok(node_id)
     }
 
-
-    pub fn zeroes<S: Into<Shape>>(&mut self, shape: S, dtype: xla::ElementType) -> Result<NodeIdentifier> {
+    pub fn zeroes<S: Into<Shape>>(
+        &mut self,
+        shape: S,
+        dtype: xla::ElementType,
+    ) -> Result<NodeIdentifier> {
         let shape = shape.into();
-        let vec = (0..shape.size())
-            .map(|_i| 0)
-            .collect::<Vec<i64>>();
+        let vec = (0..shape.size()).map(|_i| 0).collect::<Vec<i64>>();
         let slice = vec.as_slice();
         let value = xla::Literal::vec1(slice).convert(dtype.primitive_type())?;
-        let i64_vec = shape
-            .sizes
-            .iter()
-            .map(|d| *d as i64)
-            .collect::<Vec<i64>>();
+        let i64_vec = shape.sizes.iter().map(|d| *d as i64).collect::<Vec<i64>>();
         let i64_slice = i64_vec.as_slice();
         let reshaped = value.reshape(i64_slice)?;
         let node_id = self.nodes.insert(Node {
@@ -163,18 +164,16 @@ impl Context {
         Ok(node_id)
     }
 
-    pub fn ones<S: Into<Shape>>(&mut self, shape: S, dtype: xla::ElementType) -> Result<NodeIdentifier> {
+    pub fn ones<S: Into<Shape>>(
+        &mut self,
+        shape: S,
+        dtype: xla::ElementType,
+    ) -> Result<NodeIdentifier> {
         let shape = shape.into();
-        let vec = (0..shape.size())
-            .map(|_i| 1)
-            .collect::<Vec<i64>>();
+        let vec = (0..shape.size()).map(|_i| 1).collect::<Vec<i64>>();
         let slice = vec.as_slice();
         let value = xla::Literal::vec1(slice).convert(dtype.primitive_type())?;
-        let i64_vec = shape
-            .sizes
-            .iter()
-            .map(|d| *d as i64)
-            .collect::<Vec<i64>>();
+        let i64_vec = shape.sizes.iter().map(|d| *d as i64).collect::<Vec<i64>>();
         let i64_slice = i64_vec.as_slice();
         let reshaped = value.reshape(i64_slice)?;
         let node_id = self.nodes.insert(Node {

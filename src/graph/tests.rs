@@ -10,7 +10,9 @@ macro_rules! create_test {
 
             let client = xla::PjRtClient::gpu(0.7, false).expect("client");
             let name = "test";
-            let executable = ctx.compile(&name, &vec![operation], &client).expect("executable");
+            let executable = ctx
+                .compile(&name, &vec![operation], &client)
+                .expect("executable");
 
             let x_input = xla::Literal::scalar($in1);
             let y_input = xla::Literal::scalar($in2);
@@ -36,7 +38,9 @@ macro_rules! create_test {
 
             let client = xla::PjRtClient::gpu(0.7, false).expect("client");
             let name = "test";
-            let executable = ctx.compile(&name, &vec![operation], &client).expect("executable");
+            let executable = ctx
+                .compile(&name, &vec![operation], &client)
+                .expect("executable");
 
             let x_input = xla::Literal::scalar($in);
 
@@ -51,7 +55,6 @@ macro_rules! create_test {
             assert_eq!(rust_result[0], $exp);
         }
     };
-
 }
 
 #[cfg(test)]
@@ -66,7 +69,6 @@ mod tests {
     create_test!(test_add_1_2, add, F32, 1f32, 2f32, 3f32);
     create_test!(test_sub_1_2, sub, F32, 1f32, 2f32, -1f32);
 
-
     /*#[test]
     fn test_inv_perm_transpose() {
         let before = &[1,0];
@@ -77,18 +79,18 @@ mod tests {
 
     #[test]
     fn test_inv_perm_cplx() {
-        let before = &[4,8,0,7,1,5,3,6,2];
+        let before = &[4, 8, 0, 7, 1, 5, 3, 6, 2];
         let after = Context::inv_perm(before);
 
-        assert_eq!(&[2,4,8,6,0,5,7,3,1], after.as_slice())
+        assert_eq!(&[2, 4, 8, 6, 0, 5, 7, 3, 1], after.as_slice())
     }
 
     #[test]
     fn test_inv_perm() {
-        let before = &[1,2,0,3];
+        let before = &[1, 2, 0, 3];
         let after = Context::inv_perm(before);
 
-        assert_eq!(&[2,0,1,3], after.as_slice());
+        assert_eq!(&[2, 0, 1, 3], after.as_slice());
     }
 
     #[test]
@@ -292,7 +294,6 @@ mod tests {
         assert!(node.is_const().is_some());
     }
 
-
     #[test]
     fn test_exp() {
         let mut ctx = Context::new();
@@ -317,7 +318,6 @@ mod tests {
         println!("{:?}", rust_result);
 
         assert_eq!(rust_result[0], f32::exp(1f32));
-
     }
 
     #[test]
@@ -344,11 +344,10 @@ mod tests {
         println!("{:?}", rust_result);
 
         assert_eq!(rust_result[0], 9f32);
-
     }
 
     #[test]
-    fn test_log(){
+    fn test_log() {
         let mut ctx = Context::new();
         let x = ctx.parameter("x", [], xla::ElementType::F32).expect("x");
 
@@ -438,7 +437,9 @@ mod tests {
 
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
 
-        let executable = ctx.compile("test", &vec![barbaz], &client).expect("executable");
+        let executable = ctx
+            .compile("test", &vec![barbaz], &client)
+            .expect("executable");
 
         let device_result = executable.execute::<xla::Literal>(&[]).expect("execute");
         let host_result = device_result[0][0]
@@ -469,7 +470,9 @@ mod tests {
         let sum = ctx.add(my_const, my_param).expect("sum");
 
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
-        let executable = ctx.compile("test", &vec![sum], &client).expect("executable");
+        let executable = ctx
+            .compile("test", &vec![sum], &client)
+            .expect("executable");
 
         let my_param_input = xla::Literal::read_npy("test.npy", &()).expect("my_param_input");
 
@@ -555,7 +558,9 @@ mod tests {
 
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, &vec![relu], &client).expect("executable");
+        let executable = ctx
+            .compile(&name, &vec![relu], &client)
+            .expect("executable");
 
         let device_result = executable.execute::<xla::Literal>(&[]).expect("execute");
         let host_result = device_result[0][0]
@@ -576,7 +581,9 @@ mod tests {
 
         let client = xla::PjRtClient::gpu(0.7, false).expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, &vec![relu], &client).expect("executable");
+        let executable = ctx
+            .compile(&name, &vec![relu], &client)
+            .expect("executable");
 
         let device_result = executable.execute::<xla::Literal>(&[]).expect("execute");
         let host_result = device_result[0][0]
@@ -763,7 +770,8 @@ mod tests {
         let y = ctx.reduce_mean(x2, 0, true).expect("y");
 
         let dydx = ctx.diff(y, x.into()).expect("dydx");
-        ctx.fold_consts(dydx, usize::max_value()).expect("fold_consts");
+        ctx.fold_consts(dydx, usize::max_value())
+            .expect("fold_consts");
         println!("{}", ctx.to_string(dydx));
         //assert_eq!(ctx.to_string(dydx), "Mul (Mul (Constant Scalar 2) (Parameter Vector2 x)) (Constant Scalar 0.5)");
         let lr = ctx.scalar(1, xla::ElementType::F32).expect("lr");
@@ -802,5 +810,4 @@ mod tests {
         println!("y = {}", y_rust);
         println!("dydx = {}", dydx_rust);
     }
-
 }

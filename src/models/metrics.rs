@@ -1,4 +1,4 @@
-use crate::graph::{Context, dtypes::check_int_type, NodeIdentifier, Result};
+use crate::graph::{dtypes::check_int_type, Context, NodeIdentifier, Result};
 
 /// A struct representing the loss and all auxiliary metrics of the network given
 /// network outputs and supervised training targets.
@@ -15,7 +15,6 @@ pub struct Metrics {
 }
 
 impl Context {
-
     /// Accuracy of predictions compared to labels.
     ///
     /// `dense_predictions` is a 2D tensor with first axis being
@@ -35,5 +34,4 @@ impl Context {
         let converted = self.type_cast(compare, xla::ElementType::F32);
         self.reduce_mean(converted, 0, false)
     }
-
 }

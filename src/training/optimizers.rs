@@ -637,17 +637,13 @@ impl Optimizer<f32> for DynamicBatchNormOptimizer {
             let grads = vec![grad_mu, grad_sigma];
 
             let batch_size = network.nodes[x].shape.sizes[0];
-            let batch_mask = step.parameter(
-                "",
-                [batch_size],
-                network.nodes[x].dtype,
-            )?;
+            let batch_mask = step.parameter("", [batch_size], network.nodes[x].dtype)?;
             let mut new_shape = SmallVec::new();
             new_shape.push(batch_size);
             for i in 1..network.nodes[x].shape.ndims() {
                 new_shape.push(1);
             }
-            let mask_reshaped = step.reshape(batch_mask, Shape{ sizes: new_shape })?;
+            let mask_reshaped = step.reshape(batch_mask, Shape { sizes: new_shape })?;
             let denominator = step.reduce_sum(batch_mask, 0, false)?;
 
             let grad_mu_masked = step.mul(mask_reshaped, grad_mu)?;

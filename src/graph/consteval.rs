@@ -441,7 +441,12 @@ impl Context {
 
 
         */
-        if let Some((idx, _)) = self.parameters.iter().enumerate().find(|(_, node)| *node == &to_remove) {
+        if let Some((idx, _)) = self
+            .parameters
+            .iter()
+            .enumerate()
+            .find(|(_, node)| *node == &to_remove)
+        {
             self.parameters.remove(idx);
         }
 

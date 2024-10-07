@@ -1,4 +1,6 @@
-use crate::graph::{callsite::callsite, dtypes, Context, Node, NodeIdentifier, Operation, Result, Shape};
+use crate::graph::{
+    callsite::callsite, dtypes, Context, Node, NodeIdentifier, Operation, Result, Shape,
+};
 
 use super::initializers::{ConstInit, Initializer};
 
@@ -122,10 +124,7 @@ impl Context {
 
         return Ok((
             batchnorm_node,
-            BatchNormParams {
-                mu,
-                sigma,
-            },
+            BatchNormParams { mu, sigma },
             BatchNormParams {
                 mu: mu_literal,
                 sigma: sigma_literal,

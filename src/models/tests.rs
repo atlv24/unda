@@ -4,7 +4,7 @@ mod tests {
     use xla::Literal;
 
     #[test]
-    fn test_tanh(){
+    fn test_tanh() {
         let mut ctx = Context::new();
         let x = ctx.parameter("x", [], xla::ElementType::F32).expect("x");
 
@@ -26,11 +26,10 @@ mod tests {
 
             assert!((rust_result[0] - f32::tanh(i as f32)) <= 0.0000001);
         }
-
     }
 
     #[test]
-    fn test_leaky_relu(){
+    fn test_leaky_relu() {
         let mut ctx = Context::new();
         let x = ctx.parameter("x", [], xla::ElementType::F32).expect("x");
 
@@ -69,9 +68,11 @@ mod tests {
         let test_const = ctx.const_from_npy("test2.npy").expect("test_const");
         let relu = ctx.relu(test_const).expect("relu");
 
-        let client = xla::PjRtClient::cpu().expect("client");//gpu(0.7, false).expect("client");
+        let client = xla::PjRtClient::cpu().expect("client"); //gpu(0.7, false).expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, &vec![relu], &client).expect("executable");
+        let executable = ctx
+            .compile(&name, &vec![relu], &client)
+            .expect("executable");
 
         let device_result = executable.execute::<xla::Literal>(&[]).expect("execute");
         let host_result = device_result[0][0]
@@ -87,15 +88,19 @@ mod tests {
     fn test_tanh_diff() {
         let mut ctx = Context::new();
 
-        let x = ctx.parameter("x", [4],xla::ElementType::F32).expect("test_const");
+        let x = ctx
+            .parameter("x", [4], xla::ElementType::F32)
+            .expect("test_const");
         let tanh = ctx.tanh(x).expect("tanh");
         let dydx = ctx.diff(tanh, x).expect("dy/dx");
 
-        let client = xla::PjRtClient::cpu().expect("client");//gpu(0.7, false).expect("client");
+        let client = xla::PjRtClient::cpu().expect("client"); //gpu(0.7, false).expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, &vec![dydx], &client).expect("executable");
+        let executable = ctx
+            .compile(&name, &vec![dydx], &client)
+            .expect("executable");
 
-        let x_input = xla::Literal::vec1(&[1.0f32,3.0f32,4.0f32,0.5f32]);
+        let x_input = xla::Literal::vec1(&[1.0f32, 3.0f32, 4.0f32, 0.5f32]);
 
         let device_result = executable.execute::<Literal>(&[x_input]).expect("execute");
         let host_result = device_result[0][0]
@@ -110,15 +115,19 @@ mod tests {
     fn test_sigmoid_diff() {
         let mut ctx = Context::new();
 
-        let x = ctx.parameter("x", [4],xla::ElementType::F32).expect("test_const");
+        let x = ctx
+            .parameter("x", [4], xla::ElementType::F32)
+            .expect("test_const");
         let sigmoid = ctx.sigmoid(x).expect("sigmoid");
         let dydx = ctx.diff(sigmoid, x).expect("dy/dx");
 
-        let client = xla::PjRtClient::cpu().expect("client");//gpu(0.7, false).expect("client");
+        let client = xla::PjRtClient::cpu().expect("client"); //gpu(0.7, false).expect("client");
         let name = "test";
-        let executable = ctx.compile(&name, &vec![dydx], &client).expect("executable");
+        let executable = ctx
+            .compile(&name, &vec![dydx], &client)
+            .expect("executable");
 
-        let x_input = xla::Literal::vec1(&[1.0f32,3.0f32,4.0f32,0.5f32]);
+        let x_input = xla::Literal::vec1(&[1.0f32, 3.0f32, 4.0f32, 0.5f32]);
 
         let device_result = executable.execute::<Literal>(&[x_input]).expect("execute");
         let host_result = device_result[0][0]
@@ -144,7 +153,9 @@ mod tests {
 
         let client = xla::PjRtClient::cpu().expect("Client");
         let name = "test";
-        let exec = f.compile(&name, &vec![square], &client).expect("executable");
+        let exec = f
+            .compile(&name, &vec![square], &client)
+            .expect("executable");
 
         let x_in = xla::Literal::scalar(2f32);
         let device_result = exec.execute::<Literal>(&[x_in]).expect("execute");
@@ -203,7 +214,9 @@ mod tests {
 
         let client = xla::PjRtClient::cpu().expect("Client");
         let name = "test";
-        let exec = f.compile(&name, &vec![new_square[0]], &client).expect("executable");
+        let exec = f
+            .compile(&name, &vec![new_square[0]], &client)
+            .expect("executable");
 
         let x_in = xla::Literal::scalar(2f32);
         let y_in = xla::Literal::scalar(3f32);
@@ -216,8 +229,6 @@ mod tests {
 
         assert_eq!(vec![9f32], rust_result)
     }
-
-
 
     #[test]
     fn test_fusion() {
@@ -236,7 +247,9 @@ mod tests {
 
         let client = xla::PjRtClient::cpu().expect("Client");
         let name = "test";
-        let exec = f.compile(&name, &vec![output[1]], &client).expect("executable");
+        let exec = f
+            .compile(&name, &vec![output[1]], &client)
+            .expect("executable");
 
         let x_in = xla::Literal::scalar(2f32);
         let device_result = exec.execute::<Literal>(&[x_in]).expect("execute");
@@ -248,5 +261,4 @@ mod tests {
 
         assert_eq!(16f32, rust_result[0])
     }
-
 }

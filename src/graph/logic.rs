@@ -44,10 +44,7 @@ impl Context {
                             dtype: node_true.dtype,
                         };
                         let node_id = self.nodes.insert(node);
-                        self.dependent_nodes
-                            .entry(pred)
-                            .or_default()
-                            .push(node_id);
+                        self.dependent_nodes.entry(pred).or_default().push(node_id);
                         self.dependent_nodes
                             .entry(on_true)
                             .or_default()

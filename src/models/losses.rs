@@ -3,7 +3,6 @@ use crate::graph::{
 };
 
 impl Context {
-
     /// Mean cross entropy loss function.
     ///
     /// Assumes two axes for both inputs:

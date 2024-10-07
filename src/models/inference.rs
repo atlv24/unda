@@ -1,6 +1,6 @@
 use xla::{Literal, PjRtBuffer};
 
-use crate::graph::{Context, NodeIdentifier, Result};
+use crate::graph::Result;
 
 /// Helper struct for inference.
 pub struct InferenceExecutable {

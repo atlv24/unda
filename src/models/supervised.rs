@@ -1,5 +1,3 @@
-use xla::{Literal, PjRtBuffer};
-
 use crate::graph::{Context, NodeIdentifier, Result};
 use crate::models::{inference::InferenceExecutable, metrics::Metrics};
 

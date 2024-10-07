@@ -1,66 +1,66 @@
-macro_rules! create_test {
-    ($name:ident, $op:ident, $dtype:ident, $in1:expr, $in2:expr, $exp:expr) => {
-        #[test]
-        fn $name() {
-            let mut ctx = Context::new();
-            let x = ctx.parameter("x", [], xla::ElementType::$dtype).expect("x");
-            let y = ctx.parameter("y", [], xla::ElementType::$dtype).expect("y");
-
-            let operation = ctx.$op(x, y).expect("operation");
-
-            let client = xla::PjRtClient::gpu(0.7, false).expect("client");
-            let name = "test";
-            let executable = ctx
-                .compile(&name, &vec![operation], &client)
-                .expect("executable");
-
-            let x_input = xla::Literal::scalar($in1);
-            let y_input = xla::Literal::scalar($in2);
-
-            let device_result = executable.execute(&[x_input, y_input]).expect("execute");
-            let host_result = device_result[0][0]
-                .to_literal_sync()
-                .expect("to_literal_sync");
-            let untupled_result = host_result.to_tuple1().expect("untuple");
-            let rust_result = untupled_result.to_vec::<f32>().expect("to_vec");
-            println!("{:?}", rust_result);
-
-            assert_eq!(rust_result[0], $exp);
-        }
-    };
-    ($name:ident, $op:ident, $dtype:ident, $in:expr, $exp:expr) => {
-        #[test]
-        fn $name() {
-            let mut ctx = Context::new();
-            let x = ctx.parameter("x", [], xla::ElementType::$dtype).expect("x");
-
-            let operation = ctx.$op(x).expect("operation");
-
-            let client = xla::PjRtClient::gpu(0.7, false).expect("client");
-            let name = "test";
-            let executable = ctx
-                .compile(&name, &vec![operation], &client)
-                .expect("executable");
-
-            let x_input = xla::Literal::scalar($in);
-
-            let device_result = executable.execute(&[x_input]).expect("execute");
-            let host_result = device_result[0][0]
-                .to_literal_sync()
-                .expect("to_literal_sync");
-            let untupled_result = host_result.to_tuple1().expect("untuple");
-            let rust_result = untupled_result.to_vec::<f32>().expect("to_vec");
-            println!("{:?}", rust_result);
-
-            assert_eq!(rust_result[0], $exp);
-        }
-    };
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::graph::{callsite::callsite, ConstantBinding, Context, Node, Operation};
-    use xla::{FromRawBytes, Literal, Shape};
+    macro_rules! create_test {
+        ($name:ident, $op:ident, $dtype:ident, $in1:expr, $in2:expr, $exp:expr) => {
+            #[test]
+            fn $name() {
+                let mut ctx = Context::new();
+                let x = ctx.parameter("x", [], xla::ElementType::$dtype).expect("x");
+                let y = ctx.parameter("y", [], xla::ElementType::$dtype).expect("y");
+
+                let operation = ctx.$op(x, y).expect("operation");
+
+                let client = xla::PjRtClient::gpu(0.7, false).expect("client");
+                let name = "test";
+                let executable = ctx
+                    .compile(&name, &vec![operation], &client)
+                    .expect("executable");
+
+                let x_input = xla::Literal::scalar($in1);
+                let y_input = xla::Literal::scalar($in2);
+
+                let device_result = executable.execute(&[x_input, y_input]).expect("execute");
+                let host_result = device_result[0][0]
+                    .to_literal_sync()
+                    .expect("to_literal_sync");
+                let untupled_result = host_result.to_tuple1().expect("untuple");
+                let rust_result = untupled_result.to_vec::<f32>().expect("to_vec");
+                println!("{:?}", rust_result);
+
+                assert_eq!(rust_result[0], $exp);
+            }
+        };
+        ($name:ident, $op:ident, $dtype:ident, $in:expr, $exp:expr) => {
+            #[test]
+            fn $name() {
+                let mut ctx = Context::new();
+                let x = ctx.parameter("x", [], xla::ElementType::$dtype).expect("x");
+
+                let operation = ctx.$op(x).expect("operation");
+
+                let client = xla::PjRtClient::gpu(0.7, false).expect("client");
+                let name = "test";
+                let executable = ctx
+                    .compile(&name, &vec![operation], &client)
+                    .expect("executable");
+
+                let x_input = xla::Literal::scalar($in);
+
+                let device_result = executable.execute(&[x_input]).expect("execute");
+                let host_result = device_result[0][0]
+                    .to_literal_sync()
+                    .expect("to_literal_sync");
+                let untupled_result = host_result.to_tuple1().expect("untuple");
+                let rust_result = untupled_result.to_vec::<f32>().expect("to_vec");
+                println!("{:?}", rust_result);
+
+                assert_eq!(rust_result[0], $exp);
+            }
+        };
+    }
+
+    use crate::graph::{Context, Operation};
+    use xla::{FromRawBytes, Literal};
 
     create_test!(test_pow_f32_100_squared, pow, F32, 10f32, 2f32, 100f32);
     create_test!(test_pow_f32_3_squared, pow, F32, 3f32, 2f32, 9f32);
@@ -648,7 +648,7 @@ mod tests {
         let x_xla = xla::Literal::scalar(x_rust);
         let buffers = executable.execute(&[x_xla]).expect("execute");
         let literals = buffers[0][0].to_literal_sync().expect("to_literal_sync");
-        let (y, dydx, x) = literals.to_tuple3().expect("untuple");
+        let (y, dydx, _x) = literals.to_tuple3().expect("untuple");
         let y_rust = y.to_vec::<f32>().expect("to_vec")[0];
         let dydx_rust = dydx.to_vec::<f32>().expect("to_vec")[0];
         println!("y = {}", y_rust);
@@ -700,7 +700,7 @@ mod tests {
         let x_xla = xla::Literal::scalar(x_rust);
         let buffers = executable.execute(&[x_xla]).expect("execute");
         let literals = buffers[0][0].to_literal_sync().expect("to_literal_sync");
-        let (y, dydx, x) = literals.to_tuple3().expect("untuple");
+        let (y, dydx, _x) = literals.to_tuple3().expect("untuple");
         let y_rust = y.to_vec::<f32>().expect("to_vec")[0];
         let dydx_rust = dydx.to_vec::<f32>().expect("to_vec")[0];
         println!("y = {}", y_rust);
@@ -737,7 +737,7 @@ mod tests {
         let mut x_rust = 0.5f32;
         println!("x = {}", x_rust);
 
-        for i in 0..20 {
+        for _i in 0..20 {
             let x_xla = xla::Literal::scalar(x_rust);
             let buffers = executable.execute(&[x_xla]).expect("execute");
             let literals = buffers[0][0].to_literal_sync().expect("to_literal_sync");
@@ -752,7 +752,7 @@ mod tests {
         let x_xla = xla::Literal::scalar(x_rust);
         let buffers = executable.execute(&[x_xla]).expect("execute");
         let literals = buffers[0][0].to_literal_sync().expect("to_literal_sync");
-        let (y, dydx, x) = literals.to_tuple3().expect("untuple");
+        let (y, dydx, _x) = literals.to_tuple3().expect("untuple");
         let y_rust = y.to_vec::<f32>().expect("to_vec")[0];
         let dydx_rust = dydx.to_vec::<f32>().expect("to_vec")[0];
         println!("y = {}", y_rust);
@@ -804,7 +804,7 @@ mod tests {
         let x_xla = xla::Literal::vec1(&x_rust);
         let buffers = executable.execute(&[x_xla]).expect("execute");
         let literals = buffers[0][0].to_literal_sync().expect("to_literal_sync");
-        let (y, dydx, x) = literals.to_tuple3().expect("untuple");
+        let (y, dydx, _x) = literals.to_tuple3().expect("untuple");
         let y_rust = y.to_vec::<f32>().expect("to_vec")[0];
         let dydx_rust = dydx.to_vec::<f32>().expect("to_vec")[0];
         println!("y = {}", y_rust);

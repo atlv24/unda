@@ -235,6 +235,7 @@ impl Context {
                             dependent_pullbacks.push(next_pullback);
                         }
 
+                        // TODO: a is not used here, this is a bug
                         Operation::Sqrt(a) => {
                             let next_pullback = self.diff(output, dependent_node)?;
                             let half = self.scalar(0.5, wrt_dtype)?;
@@ -244,6 +245,7 @@ impl Context {
                             dependent_pullbacks.push(next_pullback);
                         }
 
+                        // TODO: a is not used here, this is a bug
                         Operation::InvSqrt(a) => {
                             let next_pullback = self.diff(output, dependent_node)?;
                             let neg_half = self.scalar(-0.5, wrt_dtype)?;

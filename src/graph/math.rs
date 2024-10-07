@@ -6,6 +6,8 @@ use self::dtypes::*;
 use super::*;
 
 impl Context {
+    // TODO: use macros to codegen most of these
+
     // TODO: use trait aliases for `Into<NodeIdentifier> + Copy`
     // when they get stablized: https://github.com/rust-lang/rust/issues/41517
     pub fn add(&mut self, a: NodeIdentifier, b: NodeIdentifier) -> Result<NodeIdentifier> {

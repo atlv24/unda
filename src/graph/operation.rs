@@ -110,6 +110,7 @@ impl Hash for Operation {
             Self::Constant(a) => {
                 //This is a little silly but it should work tbh
                 //Might want to redo this later
+                // TODO: add hash+eq to xla::Literal
                 a.to_string().hash(state);
             }
             Self::Parameter(a) => {
@@ -200,6 +201,7 @@ impl PartialEq for Operation {
             //Order does matter, so div, sub, pow etc
             (&Self::Div(a, b), &Self::Div(c, d))
             | (&Self::Pow(a, b), &Self::Pow(c, d))
+            // TODO: do we need provisions for a < b == b > a etc?
             | (&Self::LessThan(a, b), &Self::LessThan(c, d))
             | (&Self::GreaterThan(a, b), &Self::GreaterThan(c, d))
             | (&Self::GreaterThanEq(a, b), &Self::GreaterThanEq(c, d))
@@ -212,6 +214,7 @@ impl PartialEq for Operation {
             | (&Self::Exp(a), &Self::Exp(b))
             | (&Self::Reshape(a), &Self::Reshape(b))
             | (&Self::Log(a), &Self::Log(b)) => a == b,
+            // TODO: unstring this
             (&Self::Constant(a), &Self::Constant(b)) => a.to_string() == b.to_string(),
             (&Self::Parameter(a), &Self::Parameter(b)) => a == b,
             (

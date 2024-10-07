@@ -11,6 +11,7 @@ impl Context {
         }
     }
 
+    // TODO: this entire function shouldnt exist, just replace nodes in-place
     pub(crate) fn replace_index(
         &mut self,
         to_remove: NodeIdentifier,
@@ -521,6 +522,7 @@ impl Context {
             match self.nodes[node_id].operation {
                 Operation::Add(a, b) | Operation::Sub(a, b) => {
                     if self.nodes[a].is_zero()? {
+                        // BUG: subtracting from 0 is not identity, its negation
                         self.replace_index(node_id, b)?;
                         modifications += 1;
                         changed = true;
@@ -578,6 +580,7 @@ impl Context {
                     }
                 }
                 Operation::Neg(a) => {
+                    // TODO: if let Operation::Constant(_) = self.nodes[a].operation
                     if self.nodes[a].is_const().is_none() {
                         to_visit.push(a);
                     }

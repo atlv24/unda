@@ -1,10 +1,11 @@
-
-
 use super::*;
 use rand_distr::num_traits::Zero;
 use slotmap::new_key_type;
+use std::{
+    fmt::{Display, Formatter, Result},
+    hash::Hash,
+};
 use xla::Literal;
-use std::{fmt::{Display, Formatter, Result}, hash::Hash};
 
 use half::bf16;
 use half::f16;
@@ -23,7 +24,6 @@ pub struct Node {
     pub dtype: xla::ElementType,
 }
 
-
 new_key_type! {
     pub struct NodeIdentifier;
 }
@@ -31,6 +31,7 @@ new_key_type! {
 impl PartialEq for Node {
     fn eq(&self, other: &Self) -> bool {
         self.shape == other.shape && self.operation == other.operation
+        // BUG: shouldnt output type affect equality?
     }
 }
 
@@ -40,10 +41,11 @@ impl Hash for Node {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.shape.hash(state);
         self.operation.hash(state);
+        // BUG: shouldnt we hash the output type?
     }
 }
 
-
+// TODO: pull this block out into constant.rs
 impl Node {
     /// Identifies constant operation node for easier
     /// constant folding in context.rs
@@ -59,14 +61,13 @@ impl Node {
             Operation::Constant(a) => {
                 match a.value.element_type()? {
                     xla::ElementType::Pred => {
-                      let data_ref = a.value.to_vec::<u8>()?;
+                        let data_ref = a.value.to_vec::<u8>()?;
                         for i in data_ref.iter() {
                             if i != &1u8 {
                                 return Ok(false);
                             }
                         }
-
-                    },
+                    }
                     xla::ElementType::F16 => {
                         let data_ref = a.value.to_vec::<f16>()?;
                         for i in data_ref.iter() {
@@ -74,7 +75,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
                     xla::ElementType::F32 => {
                         let data_ref = a.value.to_vec::<f32>()?;
                         for i in data_ref.iter() {
@@ -82,7 +83,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
                     xla::ElementType::F64 => {
                         let data_ref = a.value.to_vec::<f64>()?;
                         for i in data_ref.iter() {
@@ -90,7 +91,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
 
                     xla::ElementType::U8 => {
                         let data_ref = a.value.to_vec::<u8>()?;
@@ -99,7 +100,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
 
                     xla::ElementType::U16 => {
                         let data_ref = a.value.to_vec::<u16>()?;
@@ -108,7 +109,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
                     xla::ElementType::U32 => {
                         let data_ref = a.value.to_vec::<u32>()?;
                         for i in data_ref.iter() {
@@ -116,7 +117,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
                     xla::ElementType::U64 => {
                         let data_ref = a.value.to_vec::<u64>()?;
                         for i in data_ref.iter() {
@@ -124,7 +125,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
 
                     xla::ElementType::S8 => {
                         let data_ref = a.value.to_vec::<i8>()?;
@@ -133,7 +134,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
 
                     xla::ElementType::S16 => {
                         let data_ref = a.value.to_vec::<i16>()?;
@@ -142,7 +143,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
                     xla::ElementType::S32 => {
                         let data_ref = a.value.to_vec::<i32>()?;
                         for i in data_ref.iter() {
@@ -150,7 +151,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
                     xla::ElementType::S64 => {
                         let data_ref = a.value.to_vec::<i64>()?;
                         for i in data_ref.iter() {
@@ -158,15 +159,15 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
                     xla::ElementType::C64 => {
                         //TODO
                         return Ok(false);
-                    },
+                    }
                     xla::ElementType::C128 => {
                         //TODO
                         return Ok(false);
-                    },
+                    }
                     xla::ElementType::Bf16 => {
                         let data_ref: Vec<bf16> = a.value.to_vec()?;
                         for i in data_ref.iter() {
@@ -178,7 +179,7 @@ impl Node {
                 }
 
                 Ok(true)
-            },
+            }
             _ => Ok(false),
         }
     }
@@ -188,14 +189,13 @@ impl Node {
             Operation::Constant(a) => {
                 match a.value.element_type()? {
                     xla::ElementType::Pred => {
-                      let data_ref = a.value.to_vec::<u8>()?;
+                        let data_ref = a.value.to_vec::<u8>()?;
                         for i in data_ref.iter() {
                             if !i.is_zero() {
                                 return Ok(false);
                             }
                         }
-
-                    },
+                    }
                     xla::ElementType::F16 => {
                         let data_ref = a.value.to_vec::<f16>()?;
                         for i in data_ref.iter() {
@@ -203,7 +203,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
                     xla::ElementType::F32 => {
                         let data_ref = a.value.to_vec::<f32>()?;
                         for i in data_ref.iter() {
@@ -211,7 +211,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
                     xla::ElementType::F64 => {
                         let data_ref = a.value.to_vec::<f64>()?;
                         for i in data_ref.iter() {
@@ -219,7 +219,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
 
                     xla::ElementType::U8 => {
                         let data_ref = a.value.to_vec::<u8>()?;
@@ -228,7 +228,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
 
                     xla::ElementType::U16 => {
                         let data_ref = a.value.to_vec::<u16>()?;
@@ -237,7 +237,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
                     xla::ElementType::U32 => {
                         let data_ref = a.value.to_vec::<u32>()?;
                         for i in data_ref.iter() {
@@ -245,7 +245,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
                     xla::ElementType::U64 => {
                         let data_ref = a.value.to_vec::<u64>()?;
                         for i in data_ref.iter() {
@@ -253,7 +253,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
 
                     xla::ElementType::S8 => {
                         let data_ref = a.value.to_vec::<i8>()?;
@@ -262,7 +262,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
 
                     xla::ElementType::S16 => {
                         let data_ref = a.value.to_vec::<i16>()?;
@@ -271,7 +271,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
                     xla::ElementType::S32 => {
                         let data_ref = a.value.to_vec::<i32>()?;
                         for i in data_ref.iter() {
@@ -279,7 +279,7 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
                     xla::ElementType::S64 => {
                         let data_ref = a.value.to_vec::<i64>()?;
                         for i in data_ref.iter() {
@@ -287,15 +287,15 @@ impl Node {
                                 return Ok(false);
                             }
                         }
-                    },
+                    }
                     xla::ElementType::C64 => {
                         //TODO
                         return Ok(false);
-                    },
+                    }
                     xla::ElementType::C128 => {
                         //TODO
                         return Ok(false);
-                    },
+                    }
                     xla::ElementType::Bf16 => {
                         let data_ref: Vec<bf16> = a.value.to_vec()?;
                         for i in data_ref.iter() {
@@ -307,7 +307,7 @@ impl Node {
                 }
 
                 Ok(true)
-            },
+            }
             _ => Ok(false),
         }
     }
@@ -318,5 +318,3 @@ impl Display for Node {
         write!(f, "{} {}", self.operation, self.callsite)
     }
 }
-
-

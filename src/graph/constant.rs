@@ -113,6 +113,7 @@ impl Context {
         Ok(node_id)
     }
 
+    // TODO: why is this 4d when it has 3 dimensions?
     pub fn tensor_4d<T: xla::ArrayElement + xla::NativeType, const N: usize, const M: usize, const K: usize>(
         &mut self,
         values: [[[T; M]; N]; K],

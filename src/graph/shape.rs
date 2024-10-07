@@ -9,7 +9,7 @@ use super::callsite::Callsite;
 /// 4x3 matrix would be [4,3]
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub struct Shape {
-    /// smallvec to avoid indirection in the common case of dimension <= 8
+    /// smallvec to avoid indirection in the common case of dimension <= 4
     pub sizes: SmallVec<[u32; 4]>,
 }
 
@@ -51,7 +51,7 @@ impl Shape {
     }
 
     pub fn size(&self) -> usize {
-        self.sizes.iter().fold(1, |x, y| x*(*y as usize))
+        self.sizes.iter().fold(1, |x, y| x * (*y as usize))
     }
 
     /// Convert from xla-rs shape
@@ -109,7 +109,9 @@ impl Shape {
                     return None;
                 }
             }
-            Some(Shape{ sizes: large_shape.clone() })
+            Some(Shape {
+                sizes: large_shape.clone(),
+            })
         }
     }
 }
